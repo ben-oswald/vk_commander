@@ -1,0 +1,28 @@
+[package]
+name = "valkey_insight"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.90"
+authors = ["Ben"]
+license = "AGPL-3.0"
+
+[dependencies]
+egui = "0.33.0"
+egui_extras = "0.33.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+vk_macros = { path = "packages/vk_macros" }
+
+#[target.'cfg(unix)'.dependencies]
+eframe = { version = "0.33.0", features = ["default_fonts", "glow", "wayland"] }
+
+#[target.'cfg(windows)'.dependencies]
+#eframe = { version = "0.33.0", features = ["default_fonts", "glow"] }
+
+[profile.release]
+strip = true
+lto = "thin"
+opt-level = "z"
+codegen-units = 1
+panic = "abort"
+

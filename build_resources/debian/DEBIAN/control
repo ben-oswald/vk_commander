@@ -1,0 +1,9 @@
+Package: valkey-insight
+Version: 0.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: ben <info@oswald.dev>
+Description: A Valkey insights application built with Rust and egui
+ A Valkey insights application built with Rust and the egui GUI framework.
+Homepage: https://github.com/ben-oswald/valkey_insight

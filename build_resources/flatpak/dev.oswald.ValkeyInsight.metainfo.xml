@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.oswald.ValkeyInsight</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0</project_license>
+  <name>Valkey Insight</name>
+  <summary>A Valkey insight application built with Rust and egui</summary>
+  
+  <description>
+    <p>
+      Valkey Insight is a modern database management and monitoring tool for Valkey servers.
+      Built with Rust and the egui framework, it provides a fast and responsive user interface for
+      managing your Valkey instances.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Connect to Valkey servers</li>
+      <li>Monitor server performance and statistics</li>
+      <li>Browse and manage keys</li>
+      <li>Execute commands and queries</li>
+      <li>View detailed insight about your database</li>
+    </ul>
+  </description>
+  
+  <launchable type="desktop-id">dev.oswald.ValkeyInsight.desktop</launchable>
+  
+  <categories>
+    <category>Development</category>
+    <category>Database</category>
+  </categories>
+  
+  <keywords>
+    <keyword>valkey</keyword>
+    <keyword>redis</keyword>
+    <keyword>database</keyword>
+    <keyword>insight</keyword>
+    <keyword>monitoring</keyword>
+  </keywords>
+  
+  <url type="homepage">https://github.com/ben/valkey_insight</url>
+  <url type="bugtracker">https://github.com/ben/valkey_insight/issues</url>
+  
+  <developer id="dev.oswald">
+    <name>Ben</name>
+  </developer>
+  
+  <releases>
+    <release version="0.0.0" date="2025-10-05">
+      <description>
+        <p>Initial release of Valkey Insight</p>
+      </description>
+    </release>
+  </releases>
+  
+  <content_rating type="oars-1.1" />
+  
+  <provides>
+    <binary>valkey-insight</binary>
+  </provides>
+  
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main window of Valkey Insight</caption>
+    </screenshot>
+  </screenshots>
+</component>

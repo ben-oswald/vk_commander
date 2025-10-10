@@ -1,0 +1,16 @@
+[package]
+name = "vk_macros"
+version = "0.0.0"
+authors = ["ben <info@oswald.dev>"]
+description = "A `cargo generate` template for quick-starting a procedural macro crate"
+keywords = ["template", "proc_macro", "procmacro"]
+edition = "2024"
+license = "AGPL-3.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0.41"
+proc-macro2 = "1.0.101"
+syn = "2.0.106"
