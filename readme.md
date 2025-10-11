@@ -19,7 +19,14 @@ Valkey Insight is a cross-platform desktop application built with Rust and egui,
 monitoring capabilities for Valkey (and Valkey-compatible) databases. The goal is to create an intuitive, lightweight
 tool for database administrators and developers to monitor and interact with their Valkey instances.
 
-**License:** AGPL-3.0
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+See the [LICENSE](license.txt) file for details.
+
+## Repository
+
+https://github.com/ben-oswald/valkey_insight
 
 ## Screenshots
 

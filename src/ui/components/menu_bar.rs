@@ -57,16 +57,10 @@ impl Component for MenuBar {
                         ui.close();
                     }
                 });
-                //TODO! Implement about section
                 ui.menu_button("Help", |ui| {
                     if ui.button("About").clicked() {
-                        state
-                            .get_sender()
-                            .send(Message::OpenModal("---".into()))
-                            .unwrap_or_else(|e| {
-                                Error::from(e).show_error_dialog(state.get_sender());
-                            });
-                        //ui.close();
+                        state.show_about = true;
+                        ui.close();
                     }
                 });
             });

@@ -13,15 +13,24 @@ BuildRequires:  gcc
 BuildRequires:  wayland-devel
 BuildRequires:  libxkbcommon-devel
 BuildRequires:  desktop-file-utils
+
+%global debug_package %{nil}
+
+%undefine _disable_source_fetch
+
 #Requires:
 
 %description
-A Valkey insight application built with Rust and the egui GUI framework.
+<p>Valkey Insight is a graphical user interface for managing Valkey databases.</p>
+<p>This is a <b>personal project</b> in a <b>very early development</b> stage and under <b>active</b> development.
+  It still contains <b>a lot of bugs</b> and <b>missing features</b>. Use at your own risk and expect frequent changes.</p>
 
 %prep
 %setup -q -n valkey_insight
+rm -rf vendor .cargo/config.toml
 
 %build
+export CARGO_HOME=$(pwd)/.cargo
 cargo build --release
 
 %install
@@ -49,5 +58,5 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/valkey_insight.deskto
 %{_datadir}/valkey_insight/commands/*.json
 
 %changelog
-* Fr October 10 2025 ben <info@oswald.dev>
+* Fri Oct 11 2025 ben <info@oswald.dev>
 - Initial package version 0.0.0

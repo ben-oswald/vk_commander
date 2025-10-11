@@ -12,15 +12,11 @@ finish-args:
   - --share=ipc
   # GPU acceleration
   - --device=dri
-  # Network access for Valkey/Redis connections
+  # Network access for Valkey connections
   - --share=network
-  # Access to home directory for configuration
-  - --filesystem=home
   # Desktop integration
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.secrets
-  # Sound (if needed for notifications)
-  - --socket=pulseaudio
 
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin
@@ -34,8 +30,14 @@ modules:
       env:
         CARGO_HOME: /run/build/valkey_insight/cargo
     build-commands:
-      - cargo build --release --offline
+      - cargo --offline fetch --manifest-path Cargo.toml --verbose
+      - cargo build --release --offline --verbose
       - install -Dm755 target/release/valkey_insight /app/bin/valkey_insight
+      - install -Dm644 build_resources/flatpak/dev.oswald.ValkeyInsight.metainfo.xml /app/share/metainfo/dev.oswald.ValkeyInsight.metainfo.xml
+      - install -Dm644 build_resources/flatpak/dev.oswald.ValkeyInsight.desktop /app/share/applications/dev.oswald.ValkeyInsight.desktop
+      - install -Dm644 build_resources/app_icon/valkey_insight.svg /app/share/icons/hicolor/scalable/apps/dev.oswald.ValkeyInsight.svg
     sources:
-      - type: dir
-        path: ../../
+      - type: archive
+        path: releases/source/valkey_insight-VERSION.tar.gz
+        strip-components: 1
+      - cargo-sources.json

@@ -1,10 +1,12 @@
 [package]
 name = "valkey_insight"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2024"
 rust-version = "1.90"
-authors = ["Ben"]
+authors = ["Benjamin Oswald"]
 license = "AGPL-3.0"
+repository = "https://github.com/ben-oswald/valkey_insight"
+homepage = "https://github.com/ben-oswald/valkey_insight"
 
 [dependencies]
 egui = "0.33.0"

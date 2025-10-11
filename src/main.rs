@@ -121,6 +121,47 @@ impl eframe::App for App {
                 });
         }
 
+        if self.state.show_about {
+            let response = egui::Window::new("About Valkey Insight")
+                .open(&mut self.state.show_about)
+                .collapsible(false)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.heading("Valkey Insight");
+                    ui.add_space(10.0);
+
+                    ui.label("A GUI tool for Valkey management");
+                    ui.add_space(10.0);
+
+                    ui.horizontal(|ui| {
+                        ui.label("Version:");
+                        ui.label(env!("CARGO_PKG_VERSION"));
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("License:");
+                        ui.hyperlink_to("AGPL-3.0", "https://www.gnu.org/licenses/agpl-3.0.html");
+                    });
+
+                    ui.horizontal(|ui| {
+                        ui.label("Source Code:");
+                        ui.hyperlink_to(
+                            "github.com/ben-oswald/valkey_insight",
+                            "https://github.com/ben-oswald/valkey_insight",
+                        );
+                    });
+
+                    ui.add_space(10.0);
+
+                    ui.button("Close").clicked()
+                });
+
+            if let Some(inner_response) = response
+                && inner_response.inner == Some(true)
+            {
+                self.state.show_about = false;
+            }
+        }
+
         if self.frame_count >= 1024 {
             self.state
                 .get_settings()
