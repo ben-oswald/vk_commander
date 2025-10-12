@@ -36,6 +36,8 @@ modules:
       - install -Dm644 build_resources/flatpak/dev.oswald.ValkeyInsight.metainfo.xml /app/share/metainfo/dev.oswald.ValkeyInsight.metainfo.xml
       - install -Dm644 build_resources/flatpak/dev.oswald.ValkeyInsight.desktop /app/share/applications/dev.oswald.ValkeyInsight.desktop
       - install -Dm644 build_resources/app_icon/valkey_insight.svg /app/share/icons/hicolor/scalable/apps/dev.oswald.ValkeyInsight.svg
+      - mkdir -p /app/share/valkey_insight/commands
+      - cp -r commands/*.json /app/share/valkey_insight/commands/
     sources:
       - type: archive
         path: releases/source/valkey_insight-VERSION.tar.gz
