@@ -4,6 +4,7 @@ Section: utils
 Priority: optional
 Architecture: amd64
 Maintainer: ben <info@oswald.dev>
-Description: A Valkey insights application built with Rust and egui
- A Valkey insights application built with Rust and the egui GUI framework.
+Description: Valkey Insight is a graphical user interface for managing Valkey databases.
+    This is a personal project in a very early development stage and under active development.
+    It still contains a lot of bugs and missing features. Use at your own risk and expect frequent changes.
 Homepage: https://github.com/ben-oswald/valkey_insight

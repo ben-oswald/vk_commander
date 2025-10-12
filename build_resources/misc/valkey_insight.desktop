@@ -2,8 +2,8 @@
 Version=1.0
 Type=Application
 Name=Valkey Insight
-Comment=A Valkey insight application built with Rust and egui
-Exec=/usr/bin/valkey_insight
+Comment=Valkey Insight is a graphical user interface for managing Valkey databases.
+Exec=/usr/bin/valkey-insight
 Icon=valkey_insight
 Terminal=false
 Categories=Development;
