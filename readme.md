@@ -35,6 +35,11 @@ https://github.com/ben-oswald/valkey_insight
   <img src="screenshots/browser.png" alt="Browser" width="600">
 </a>
 
+### Execute RESP commands
+<a href="screenshots/workbench.png" target="_blank">
+  <img src="screenshots/workbench.png" alt="Workbench" width="600">
+</a>
+
 ### Insights and statistics
 <a href="screenshots/insights.png" target="_blank">
   <img src="screenshots/insights.png" alt="Insights" width="600">

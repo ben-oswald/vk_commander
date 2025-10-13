@@ -5,19 +5,53 @@
   <project_license>AGPL-3.0</project_license>
   
   <name>Valkey Insight</name>
-  <summary>GUI tool for Valkey management</summary>
+  <summary>Fast and open source GUI for Valkey</summary>
   
+  <developer id="dev.oswald">
+    <name>Benjamin Oswald</name>
+  </developer>
+
   <description>
     <p>Valkey Insight is a graphical user interface for managing Valkey databases.</p>
-    <p>This is a <b>personal project</b> in a <b>very early development</b> stage and under <b>active</b> development.
-      It still contains <b>a lot of bugs</b> and <b>missing features</b>. Use at your own risk and expect frequent changes.</p>
+    <p>It provides an intuitive interface for connecting to Valkey instances, browsing keys, executing commands, and monitoring database operations in real-time.</p>
+    <p>This is a <em>personal project</em> in a <em>very early development</em> stage and under <em>active</em> development. It still contains <em>a lot of bugs</em> and <em>missing features</em>. Use at your own risk and expect frequent changes.</p>
   </description>
-  
-  <url type="homepage">https://github.com/ben-oswald/valkey_insight</url>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#7c3aed</color>
+    <color type="primary" scheme_preference="dark">#20ecb0</color>
+  </branding>
+
+  <content_rating type="oars-1.1" />
+
   <url type="bugtracker">https://github.com/ben-oswald/valkey_insight/issues</url>
+  <url type="homepage">https://github.com/ben-oswald/valkey_insight</url>
   <url type="vcs-browser">https://github.com/ben-oswald/valkey_insight</url>
-  
-  <developer_name>Benjamin Oswald</developer_name>
-  
+
   <launchable type="desktop-id">dev.oswald.ValkeyInsight.desktop</launchable>
+
+  <requires>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <display_length compare="ge">800</display_length>
+  </requires>
+
+  <custom>
+    <value key="flathub::manifest">https://github.com/ben-oswald/valkey_insight/blob/master/build_resources/flatpak/dev.oswald.ValkeyInsight.yml</value>
+  </custom>
+
+  <releases>
+    <release version="0.0.2" date="2025-10-13">
+      <description>
+        <p>Fixed issue with the port in the form for setting up Valkey connections</p>
+      </description>
+    </release>
+
+    <release version="0.0.1" date="2025-10-12">
+      <description>
+        <p>Initial development release</p>
+      </description>
+    </release>
+  </releases>
+
 </component>
