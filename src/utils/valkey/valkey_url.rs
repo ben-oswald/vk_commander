@@ -344,7 +344,7 @@ impl ValkeyUrlBuilder {
 
     pub fn build(self) -> Result<ValkeyUrl, Error> {
         let host = self.host.ok_or("Invalid hostname")?;
-        let port = self.port.ok_or("Invalid port")?;
+        let port = self.port.unwrap_or(6379);
         Ok(ValkeyUrl {
             alias: self.connection_name,
             host,

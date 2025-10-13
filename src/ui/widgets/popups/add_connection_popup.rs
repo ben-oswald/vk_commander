@@ -119,7 +119,7 @@ impl PopupUi for AddConnectionPopup {
                 );
             });
             ui.vertical(|ui| {
-                ui.label(format!("{}*", i18n.get(LangKey::Port)));
+                ui.label(i18n.get(LangKey::Port));
                 ui.add(
                     egui::TextEdit::singleline(&mut self.port)
                         .desired_width(ui.available_width())
@@ -310,11 +310,13 @@ impl AddConnectionPopup {
     }
 
     fn parse_valkey_url(&mut self) {
-        if !self.connection_string_focus && !self.host.is_empty() && !self.port.is_empty() {
+        if !self.connection_string_focus && !self.host.is_empty() {
             let mut valkey_url = ValkeyUrlBuilder::new();
             valkey_url = valkey_url.connection_name(self.alias.clone());
             valkey_url = valkey_url.host(self.host.clone());
-            valkey_url = valkey_url.port(self.port.parse().unwrap_or(0));
+            if !self.port.is_empty() {
+                valkey_url = valkey_url.port(self.port.parse().unwrap_or(6379));
+            }
             if !self.username.is_empty() {
                 valkey_url = valkey_url.username(self.username.clone())
             }
