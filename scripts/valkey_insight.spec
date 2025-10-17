@@ -58,5 +58,5 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/valkey_insight.deskto
 %{_datadir}/valkey_insight/commands/*.json
 
 %changelog
-* Fri Oct 11 2025 ben <info@oswald.dev>
+* Fri Oct 17 2025 ben <info@oswald.dev>
 - Initial package version 0.0.0

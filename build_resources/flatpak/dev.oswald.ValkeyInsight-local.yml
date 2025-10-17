@@ -38,11 +38,6 @@ modules:
       - mkdir -p /app/share/valkey_insight/commands
       - cp -r commands/*.json /app/share/valkey_insight/commands/
     sources:
-      - type: git
-        url: https://github.com/ben-oswald/valkey_insight
-        tag: v0.0.2
-        commit: ad6e4b5a5692c894aa488c7e3d809d7babbd4926
-        dest: .
-      - type: file
-        path: generated-sources.json
-        dest: .
+      - type: dir
+        path: ../..
+      - generated-sources.json

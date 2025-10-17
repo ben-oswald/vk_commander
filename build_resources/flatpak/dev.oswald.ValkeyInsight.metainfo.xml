@@ -25,7 +25,7 @@
   <content_rating type="oars-1.1" />
 
   <url type="bugtracker">https://github.com/ben-oswald/valkey_insight/issues</url>
-  <url type="homepage">https://github.com/ben-oswald/valkey_insight</url>
+  <url type="homepage">https://oswald.dev</url>
   <url type="vcs-browser">https://github.com/ben-oswald/valkey_insight</url>
 
   <launchable type="desktop-id">dev.oswald.ValkeyInsight.desktop</launchable>
@@ -39,6 +39,25 @@
   <custom>
     <value key="flathub::manifest">https://github.com/ben-oswald/valkey_insight/blob/master/build_resources/flatpak/dev.oswald.ValkeyInsight.yml</value>
   </custom>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/ben-oswald/valkey_insight/refs/heads/master/screenshots/browser.png</image>
+      <caption>Keys browser</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/ben-oswald/valkey_insight/refs/heads/master/screenshots/workbench.png</image>
+      <caption>Execute RESP commands</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/ben-oswald/valkey_insight/refs/heads/master/screenshots/insights.png</image>
+      <caption>Valkey insights</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/ben-oswald/valkey_insight/refs/heads/master/screenshots/documentation.png</image>
+      <caption>Command reference</caption>
+    </screenshot>
+  </screenshots>
 
   <releases>
     <release version="0.0.2" date="2025-10-13">
