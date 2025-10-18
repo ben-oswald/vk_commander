@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.oswald.ValkeyInsight</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0</project_license>
+  
+  <name>Valkey Insight</name>
+  <summary>Fast and open source GUI for Valkey</summary>
+  
+  <developer id="dev.oswald">
+    <name>Benjamin Oswald</name>
+  </developer>
+
+  <description>
+    <p>Valkey Insight is a graphical user interface for managing Valkey databases.</p>
+    <p>It provides an intuitive interface for connecting to Valkey instances, browsing keys, executing commands, and monitoring database operations in real-time.</p>
+    <p>This is a <em>personal project</em> in a <em>very early development</em> stage and under <em>active</em> development. It still contains <em>a lot of bugs</em> and <em>missing features</em>. Use at your own risk and expect frequent changes.</p>
+  </description>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#7c3aed</color>
+    <color type="primary" scheme_preference="dark">#20ecb0</color>
+  </branding>
+
+  <content_rating type="oars-1.1" />
+
+  <url type="bugtracker">https://github.com/ben-oswald/valkey_insight/issues</url>
+  <url type="homepage">https://oswald.dev</url>
+  <url type="vcs-browser">https://github.com/ben-oswald/valkey_insight</url>
+
+  <launchable type="desktop-id">dev.oswald.ValkeyInsight.desktop</launchable>
+
+  <requires>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <display_length compare="ge">800</display_length>
+  </requires>
+
+  <custom>
+    <value key="flathub::manifest">https://github.com/ben-oswald/valkey_insight/blob/master/build_resources/flatpak/dev.oswald.ValkeyInsight.yml</value>
+  </custom>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/ben-oswald/valkey_insight/refs/heads/master/screenshots/browser.png</image>
+      <caption>Keys browser</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/ben-oswald/valkey_insight/refs/heads/master/screenshots/workbench.png</image>
+      <caption>Execute RESP commands</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/ben-oswald/valkey_insight/refs/heads/master/screenshots/insights.png</image>
+      <caption>Valkey insights</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/ben-oswald/valkey_insight/refs/heads/master/screenshots/documentation.png</image>
+      <caption>Command reference</caption>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="0.0.2" date="2025-10-13">
+      <description>
+        <p>Fixed issue with the port in the form for setting up Valkey connections</p>
+      </description>
+    </release>
+
+    <release version="0.0.1" date="2025-10-12">
+      <description>
+        <p>Initial development release</p>
+      </description>
+    </release>
+  </releases>
+
+</component>
