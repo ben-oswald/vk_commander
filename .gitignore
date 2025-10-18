@@ -13,6 +13,4 @@ target/
 # Intellij Idea
 .idea/
 
-# Flatpak
-/builddir
-/.flatpak-builder
+/releases/

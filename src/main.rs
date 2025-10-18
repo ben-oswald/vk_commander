@@ -143,6 +143,22 @@ impl eframe::App for App {
                     });
 
                     ui.horizontal(|ui| {
+                        ui.label("Contact:");
+                        ui.hyperlink_to(
+                            "info@oswald.dev",
+                            "mailto:info@oswald.dev?subject=Valkey%20Insight%20Feedback",
+                        );
+                    });
+
+                    ui.horizontal(|ui| {
+                        ui.label("Website:");
+                        ui.hyperlink_to(
+                            "oswald.dev",
+                            "https://oswald.dev",
+                        );
+                    });
+
+                    ui.horizontal(|ui| {
                         ui.label("Source Code:");
                         ui.hyperlink_to(
                             "github.com/ben-oswald/valkey_insight",
