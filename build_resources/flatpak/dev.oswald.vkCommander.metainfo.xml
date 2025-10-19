@@ -37,7 +37,7 @@
   </requires>
 
   <custom>
-    <value key="flathub::manifest">https://github.com/ben-oswald/vk_commander/blob/master/build_resources/flatpak/dev.oswald.ValkeyInsight.yml</value>
+    <value key="flathub::manifest">https://github.com/ben-oswald/dev.oswald.vkCommander/blob/v0.0.5/dev.oswald.vkCommander.yml</value>
   </custom>
 
   <screenshots>
