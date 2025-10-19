@@ -1,6 +1,6 @@
 ADD_CONNECTION=Add connection
 ALIAS_REQUIRED_FIELD=Alias is a required field and can't be empty
-APP_NAME=Valkey Insight
+APP_NAME=vkCommander
 AUTH_FAILED=Failed to authenticate
 BROWSER=Browser
 CANCEL=Cancel

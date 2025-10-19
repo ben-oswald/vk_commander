@@ -1,6 +1,6 @@
 ADD_CONNECTION=Verbindung hinzufügen
 ALIAS_REQUIRED_FIELD=Der Alias wird benötigt und kann nicht leer bleiben
-APP_NAME=Valkey Insight
+APP_NAME=vkCommander
 AUTH_FAILED=Authentifizierung fehlgeschlagen
 BROWSER=Browser
 CANCEL=Abbrechen

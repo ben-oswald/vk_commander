@@ -5,8 +5,8 @@ cd ..
 
 VERSION=$(grep -m1 "^version" ./Cargo.toml | sed 's/version = "\([^"]*\)"/\1/')
 
-DEB_FILE="releases/debian/valkey-insight-${VERSION}-1-amd64.deb"
-RPM_FILE="releases/fedora/valkey_insight-${VERSION}-1.x86_64.rpm"
+DEB_FILE="releases/debian/vk-commander-${VERSION}-1-amd64.deb"
+RPM_FILE="releases/fedora/vk_commander-${VERSION}-1.x86_64.rpm"
 
 if [ -f "$DEB_FILE" ] || [ -f "$RPM_FILE" ]; then
   echo "Build failed, version $VERSION already exists"
@@ -18,8 +18,8 @@ if [ ! -d "build_resources/debian" ]; then
   exit 1
 fi
 
-if [ ! -f "scripts/valkey_insight.spec" ]; then
-  echo "Error: scripts/valkey_insight.spec file not found"
+if [ ! -f "scripts/vk_commander.spec" ]; then
+  echo "Error: scripts/vk_commander.spec file not found"
   exit 1
 fi
 
@@ -35,12 +35,12 @@ cargo vendor vendor > .cargo-vendor-config.toml
 
 # ===== DEB PACKAGE =====
 echo "Building .deb package..."
-PKG_DIR="releases/debian/valkey-insight-${VERSION}-1-amd64"
+PKG_DIR="releases/debian/vk-commander-${VERSION}-1-amd64"
 mkdir -p "$PKG_DIR/usr/bin"
 
 cp -r build_resources/debian/* "$PKG_DIR/"
-cp target/release/valkey_insight "$PKG_DIR/usr/bin/valkey-insight"
-chmod 755 "$PKG_DIR/usr/bin/valkey-insight"
+cp target/release/vk_commander "$PKG_DIR/usr/bin/vk-commander"
+chmod 755 "$PKG_DIR/usr/bin/vk-commander"
 
 sed "s/^Version: .*/Version: ${VERSION}-1/" build_resources/debian/DEBIAN/control > "$PKG_DIR/DEBIAN/control"
 
@@ -64,18 +64,18 @@ EOF
 # ===== RPM PACKAGE =====
 echo "Building RPM package..."
 
-sed "s/^Version:.*/Version:        ${VERSION}/" scripts/valkey_insight.spec > releases/fedora/SPECS/valkey_insight.spec
+sed "s/^Version:.*/Version:        ${VERSION}/" scripts/vk_commander.spec > releases/fedora/SPECS/vk_commander.spec
 
 echo "Creating source tarball for RPM (with vendored dependencies)..."
-tar -czf "releases/fedora/SOURCES/valkey_insight-${VERSION}.tar.gz" \
+tar -czf "releases/fedora/SOURCES/vk_commander-${VERSION}.tar.gz" \
   --exclude='target' \
   --exclude='releases' \
   --exclude='.git' \
   --dereference \
-  --transform "s,^,valkey_insight/," \
+  --transform "s,^,vk_commander/," \
   .
 
-rpmbuild --define "_topdir $(pwd)/releases/fedora" -bb releases/fedora/SPECS/valkey_insight.spec
+rpmbuild --define "_topdir $(pwd)/releases/fedora" -bb releases/fedora/SPECS/vk_commander.spec
 rm -rf releases/fedora/{BUILD,BUILDROOT,SPECS,SOURCES,SRPMS}
 echo "Successfully built: $RPM_FILE"
 

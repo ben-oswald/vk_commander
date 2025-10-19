@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=vkCommander
+Comment=vkCommander is a Desktop Manager for Valkey databases.
+Exec=/usr/bin/vk_commander
+Icon=vk_commander
+Terminal=false
+Categories=Development;
+StartupNotify=true
+MimeType=application/x-valkey;
+Keywords=valkey;database;insight;redis;

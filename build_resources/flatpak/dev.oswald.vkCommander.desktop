@@ -1,10 +1,10 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Valkey Insight
-Comment=Valkey Insight is a graphical user interface for managing Valkey databases.
-Exec=/usr/bin/valkey_insight
-Icon=valkey_insight
+Name=vkCommander
+Comment=vkCommander is a Desktop Manager for Valkey databases
+Exec=vk_commander
+Icon=dev.oswald.vkCommander
 Terminal=false
 Categories=Development;
 StartupNotify=true

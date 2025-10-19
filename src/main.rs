@@ -4,12 +4,12 @@
 use crate::egui::ViewportBuilder;
 use crate::egui::vec2;
 use eframe::egui;
-use valkey_insight::state::AppState;
+use vk_commander::state::AppState;
 
 use eframe::HardwareAcceleration;
-use valkey_insight::ui::components::UIComponents;
-use valkey_insight::ui::widgets::ErrorModal;
-use valkey_insight::ui::{Component, Widget};
+use vk_commander::ui::components::UIComponents;
+use vk_commander::ui::widgets::ErrorModal;
+use vk_commander::ui::{Component, Widget};
 
 struct App {
     ui_components: UIComponents,
@@ -122,12 +122,12 @@ impl eframe::App for App {
         }
 
         if self.state.show_about {
-            let response = egui::Window::new("About Valkey Insight")
+            let response = egui::Window::new("About vkCommander")
                 .open(&mut self.state.show_about)
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
-                    ui.heading("Valkey Insight");
+                    ui.heading("vkCommander");
                     ui.add_space(10.0);
 
                     ui.label("A GUI tool for Valkey management");
@@ -146,7 +146,7 @@ impl eframe::App for App {
                         ui.label("Contact:");
                         ui.hyperlink_to(
                             "info@oswald.dev",
-                            "mailto:info@oswald.dev?subject=Valkey%20Insight%20Feedback",
+                            "mailto:info@oswald.dev?subject=vkCommander%20Feedback",
                         );
                     });
 
@@ -161,8 +161,8 @@ impl eframe::App for App {
                     ui.horizontal(|ui| {
                         ui.label("Source Code:");
                         ui.hyperlink_to(
-                            "github.com/ben-oswald/valkey_insight",
-                            "https://github.com/ben-oswald/valkey_insight",
+                            "github.com/ben-oswald/vk_commander",
+                            "https://github.com/ben-oswald/vk_commander",
                         );
                     });
 
@@ -218,7 +218,7 @@ fn main() {
     };
 
     eframe::run_native(
-        "Valkey Insight",
+        "vkCommander",
         native_options,
         Box::new(|_| Ok(Box::new(App::new()))),
     )

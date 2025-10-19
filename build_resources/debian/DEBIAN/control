@@ -1,10 +1,10 @@
-Package: valkey-insight
+Package: vk-commander
 Version: 0.0.0
 Section: utils
 Priority: optional
 Architecture: amd64
 Maintainer: ben <info@oswald.dev>
-Description: Valkey Insight is a graphical user interface for managing Valkey databases.
+Description: vkCommander is a graphical user interface for managing Valkey databases.
     This is a personal project in a very early development stage and under active development.
     It still contains a lot of bugs and missing features. Use at your own risk and expect frequent changes.
-Homepage: https://github.com/ben-oswald/valkey_insight
+Homepage: https://github.com/ben-oswald/vk_commander

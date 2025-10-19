@@ -4,9 +4,9 @@
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
 
-!define APP_NAME "ValkeyInsight"
-!define APP_DISPLAY_NAME "Valkey Insight"
-!define APP_EXECUTABLE "valkey_insight.exe"
+!define APP_NAME "vkCommander"
+!define APP_DISPLAY_NAME "vkCommander"
+!define APP_EXECUTABLE "vk_commander.exe"
 !define APP_PUBLISHER "Benjamin Oswald"
 !define APP_VERSION "0.0.0"
 
@@ -30,8 +30,8 @@ Var CheckboxStartMenu
 Var HasAdminRights
 
 !define MUI_ABORTWARNING
-!define MUI_ICON "build_resources/app_icon/valkey_insight.ico"
-!define MUI_UNICON "build_resources/app_icon/valkey_insight.ico"
+!define MUI_ICON "build_resources/app_icon/vk_commander.ico"
+!define MUI_UNICON "build_resources/app_icon/vk_commander.ico"
 
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT "HKLM"
 !define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\${APP_NAME}"
@@ -80,7 +80,7 @@ Function un.onInit
         ${EndIf}
     ${EndIf}
 
-    MessageBox MB_YESNO "Do you want to remove Valkey Insight from your computer?" IDYES NoAbort
+    MessageBox MB_YESNO "Do you want to remove vkCommander from your computer?" IDYES NoAbort
       Abort
     NoAbort:
 FunctionEnd

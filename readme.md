@@ -1,4 +1,4 @@
-# Valkey Insight
+# vkCommander
 
 A GUI application for monitoring and analyzing Valkey databases.
 
@@ -15,7 +15,7 @@ design. I'm building this tool to learn frontend development while creating some
 
 ## About the Project
 
-Valkey Insight is a cross-platform desktop application built with Rust and egui, designed to provide insights and
+vkCommander is a cross-platform desktop application built with Rust and egui, designed to provide insights and
 monitoring capabilities for Valkey (and Valkey-compatible) databases. The goal is to create an intuitive, lightweight
 tool for database administrators and developers to monitor and interact with their Valkey instances.
 
@@ -26,7 +26,7 @@ See the [LICENSE](license.txt) file for details.
 
 ## Repository
 
-https://github.com/ben-oswald/valkey_insight
+https://github.com/ben-oswald/vk_commander
 
 ## Screenshots
 
@@ -79,7 +79,7 @@ To build the project for your current platform:
 cargo build --release
 ```
 
-The executable will be located at `target/release/valkey_insight`.
+The executable will be located at `target/release/vk_commander`.
 
 ### Linux Packages
 
@@ -91,8 +91,8 @@ To build DEB and RPM packages for Linux:
 
 This will create:
 
-- `releases/debian/valkey-insight-{VERSION}-1-amd64.deb`
-- `releases/fedora/valkey_insight-{VERSION}-1.x86_64.rpm`
+- `releases/debian/vk-commander-{VERSION}-1-amd64.deb`
+- `releases/fedora/vk_commander-{VERSION}-1.x86_64.rpm`
 
 ### Windows Build
 
@@ -104,7 +104,7 @@ To build a Windows installer (from Linux):
 
 This will create:
 
-- `releases/windows/valkey-insights-{VERSION}-x64-installer.exe`
+- `releases/windows/vk-commanders-{VERSION}-x64-installer.exe`
 
 Note: Ensure NSIS is installed and the Windows target is added:
 
@@ -117,7 +117,7 @@ rustup target add x86_64-pc-windows-gnu
 After building, you can run the application:
 
 ```bash
-./target/release/valkey_insight
+./target/release/vk_commander
 ```
 
 ## TODO

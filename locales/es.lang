@@ -1,6 +1,6 @@
 ADD_CONNECTION=Añadir conexión
 ALIAS_REQUIRED_FIELD=El alias es un campo obligatorio y no puede estar vacío
-APP_NAME=Valkey Insight
+APP_NAME=vkCommander
 AUTH_FAILED=Autenticación fallida
 BROWSER=Navegador
 CANCEL=Cancelar

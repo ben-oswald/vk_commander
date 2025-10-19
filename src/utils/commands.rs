@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 
 pub fn get_commands_dir() -> PathBuf {
     if Path::new("/.flatpak-info").exists() {
-        PathBuf::from("/app/share/valkey_insight/commands")
+        PathBuf::from("/app/share/vk_commander/commands")
     } else if !cfg!(debug_assertions) {
-        PathBuf::from("/usr/share/valkey_insight/commands/")
+        PathBuf::from("/usr/share/vk_commander/commands/")
     } else {
         PathBuf::from("commands")
     }

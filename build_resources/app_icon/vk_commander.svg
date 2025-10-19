@@ -5,7 +5,7 @@
    viewBox="0 0 512 512"
    version="1.1"
    id="svg3"
-   sodipodi:docname="icon.svg"
+   sodipodi:docname="vk_commander.svg"
    inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -28,7 +28,7 @@
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg3" />
+     inkscape:current-layer="g3" />
   <!-- Background gradient -->
   <defs
      id="defs3">
@@ -51,10 +51,10 @@
     </linearGradient>
     <filter
        id="textShadow"
-       x="-0.033474308"
-       y="-0.0775207"
-       width="1.0878701"
-       height="1.2034918">
+       x="-0.025676226"
+       y="-0.075328736"
+       width="1.0674001"
+       height="1.1977379">
       <feGaussianBlur
          in="SourceAlpha"
          stdDeviation="4"
@@ -102,7 +102,11 @@
        x="256"
        y="310"
        text-anchor="middle"
-       id="text3">VKI</text>
+       id="text3"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         x="256"
+         y="310">VKC</tspan></text>
   </g>
   <path
      id="path4"

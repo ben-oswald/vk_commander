@@ -1,10 +1,10 @@
-Name:           valkey_insight
+Name:           vk_commander
 Version:        0.0.0
 Release:        1%{?dist}
-Summary:        A Valkey insight application built with Rust and egui
+Summary:        vkCommander is an Desktop Manager for Valkey databases.
 
 License:        AGPL-3.0
-URL:            https://github.com/ben/valkey_insight
+URL:            https://github.com/ben/vk_commander
 Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  rust
@@ -26,7 +26,7 @@ BuildRequires:  desktop-file-utils
   It still contains <b>a lot of bugs</b> and <b>missing features</b>. Use at your own risk and expect frequent changes.</p>
 
 %prep
-%setup -q -n valkey_insight
+%setup -q -n vk_commander
 rm -rf vendor .cargo/config.toml
 
 %build
@@ -38,24 +38,24 @@ mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_datadir}/applications
 mkdir -p %{buildroot}%{_datadir}/pixmaps
 mkdir -p %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
-mkdir -p %{buildroot}%{_datadir}/valkey_insight/commands
+mkdir -p %{buildroot}%{_datadir}/vk_commander/commands
 
-install -m 755 target/release/valkey_insight %{buildroot}%{_bindir}/
-install -m 644 build_resources/misc/valkey_insight.desktop %{buildroot}%{_datadir}/applications/
-install -m 644 build_resources/app_icon/valkey_insight.png %{buildroot}%{_datadir}/pixmaps/
-install -m 644 build_resources/app_icon/valkey_insight.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
-install -m 644 commands/*.json %{buildroot}%{_datadir}/valkey_insight/commands/
+install -m 755 target/release/vk_commander %{buildroot}%{_bindir}/
+install -m 644 build_resources/misc/vk_commander.desktop %{buildroot}%{_datadir}/applications/
+install -m 644 build_resources/app_icon/vk_commander.png %{buildroot}%{_datadir}/pixmaps/
+install -m 644 build_resources/app_icon/vk_commander.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
+install -m 644 commands/*.json %{buildroot}%{_datadir}/vk_commander/commands/
 
 %check
-desktop-file-validate %{buildroot}%{_datadir}/applications/valkey_insight.desktop
+desktop-file-validate %{buildroot}%{_datadir}/applications/vk_commander.desktop
 
 %files
 %license license.txt
-%{_bindir}/valkey_insight
-%{_datadir}/applications/valkey_insight.desktop
-%{_datadir}/pixmaps/valkey_insight.png
-%{_datadir}/icons/hicolor/scalable/apps/valkey_insight.svg
-%{_datadir}/valkey_insight/commands/*.json
+%{_bindir}/vk_commander
+%{_datadir}/applications/vk_commander.desktop
+%{_datadir}/pixmaps/vk_commander.png
+%{_datadir}/icons/hicolor/scalable/apps/vk_commander.svg
+%{_datadir}/vk_commander/commands/*.json
 
 %changelog
 * Fri Oct 17 2025 ben <info@oswald.dev>

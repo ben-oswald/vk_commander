@@ -5,7 +5,7 @@ cd ..
 
 VERSION=$(grep -m1 "^version" ./Cargo.toml | sed 's/version = "\([^"]*\)"/\1/')
 
-INSTALLER_FILE="releases/windows/valkey-insight-${VERSION}-x64-installer.exe"
+INSTALLER_FILE="releases/windows/vk-commander-${VERSION}-x64-installer.exe"
 
 if [ -f "$INSTALLER_FILE" ]; then
   echo "Build failed, version $VERSION already exists"
@@ -30,14 +30,14 @@ if command -v makensis >/dev/null 2>&1; then
 
   sed -e "s/!define APP_VERSION \".*\"/!define APP_VERSION \"${VERSION}\"/" \
       -e "s|!insertmacro MUI_PAGE_LICENSE \"../../license.txt\"|!insertmacro MUI_PAGE_LICENSE \"license.txt\"|" \
-      -e "s|File \"../target/x86_64-pc-windows-gnu/release/\${APP_EXECUTABLE}\"|File \"target/x86_64-pc-windows-gnu/release/valkey_insight.exe\"|" \
-      -e "s|OutFile \"../releases/windows/\${APP_NAME}Installer.exe\"|OutFile \"releases/windows/ValkeyInsightInstaller.exe\"|" \
+      -e "s|File \"../target/x86_64-pc-windows-gnu/release/\${APP_EXECUTABLE}\"|File \"target/x86_64-pc-windows-gnu/release/vk_commander.exe\"|" \
+      -e "s|OutFile \"../releases/windows/\${APP_NAME}Installer.exe\"|OutFile \"releases/windows/vkCommanderInstaller.exe\"|" \
       scripts/windows_installer.nsi > temp_installer.nsi
 
   makensis temp_installer.nsi
 
-  if [ -f "releases/windows/ValkeyInsightInstaller.exe" ]; then
-    mv "releases/windows/ValkeyInsightInstaller.exe" "$INSTALLER_FILE"
+  if [ -f "releases/windows/vkCommanderInstaller.exe" ]; then
+    mv "releases/windows/vkCommanderInstaller.exe" "$INSTALLER_FILE"
     echo "Successfully built: $INSTALLER_FILE"
   fi
 
