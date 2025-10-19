@@ -12,6 +12,8 @@ use std::time::{Duration, Instant};
 
 const SCAN_COUNT: usize = 100;
 const MAX_KEYS_TO_ANALYZE: usize = 10000;
+const STATS_REFRESH_TIME: u64 = 2;
+const KEY_ANALYSIS_REFRESH_TIME: u64 = 360;
 
 fn write_lock_arc<T, F>(lock: &Arc<RwLock<T>>, f: F, sender: &Arc<Sender<Message>>)
 where
@@ -73,7 +75,6 @@ pub struct InsightsWindow {
     key_analysis: Arc<RwLock<KeyAnalysis>>,
     is_analyzing: Arc<RwLock<bool>>,
 
-    show_graphs: bool,
     sort_mode: SortMode,
     sender: Arc<Sender<Message>>,
     i18n: Arc<I18N>,
@@ -87,7 +88,6 @@ impl InsightsWindow {
             is_fetching: Arc::new(RwLock::new(false)),
             key_analysis: Arc::new(RwLock::new(KeyAnalysis::default())),
             is_analyzing: Arc::new(RwLock::new(false)),
-            show_graphs: true,
             sort_mode: SortMode::BySize,
             sender,
             i18n,
@@ -563,7 +563,7 @@ impl InsightsWindow {
 impl Component for InsightsWindow {
     fn show(&mut self, ctx: &Context, state: &mut AppState) -> Result<(), Error> {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Valkey Insight");
+            ui.heading("Valkey Insights");
             ui.separator();
 
             if let Some(ref client) = state.valkey_client {
@@ -576,7 +576,7 @@ impl Component for InsightsWindow {
                     return;
                 };
 
-                if stats_empty || elapsed > Duration::from_secs(2) {
+                if stats_empty || elapsed > Duration::from_secs(STATS_REFRESH_TIME) {
                     self.fetch_stats(Arc::clone(client), ctx);
                 }
 
@@ -592,7 +592,7 @@ impl Component for InsightsWindow {
                     analysis.last_analysis.is_none()
                         || analysis
                             .last_analysis
-                            .is_some_and(|last| last.elapsed() > Duration::from_secs(60))
+                            .is_some_and(|last| last.elapsed() > Duration::from_secs(KEY_ANALYSIS_REFRESH_TIME))
                 }) else {
                     return;
                 };
@@ -611,17 +611,6 @@ impl Component for InsightsWindow {
                         self.write_lock(&self.last_update, |lu| {
                             *lu = Instant::now() - Duration::from_secs(10)
                         });
-                    }
-                    ui.separator();
-                    if ui
-                        .button(if self.show_graphs {
-                            "📊 Hide Graphs"
-                        } else {
-                            "📊 Show Graphs"
-                        })
-                        .clicked()
-                    {
-                        self.show_graphs = !self.show_graphs;
                     }
                     ui.separator();
 

@@ -23,7 +23,7 @@ if [ ! -f "scripts/vk_commander.spec" ]; then
   exit 1
 fi
 
-mkdir -p releases/{debian,fedora/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS},source,flatpak}
+mkdir -p releases/{debian,fedora/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}}
 
 # ===== SINGLE BUILD =====
 echo "Building Rust project..."

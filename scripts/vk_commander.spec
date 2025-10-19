@@ -21,7 +21,7 @@ BuildRequires:  desktop-file-utils
 #Requires:
 
 %description
-<p>Valkey Insight is a graphical user interface for managing Valkey databases.</p>
+<p>vkCommander is a graphical user interface for managing Valkey databases.</p>
 <p>This is a <b>personal project</b> in a <b>very early development</b> stage and under <b>active</b> development.
   It still contains <b>a lot of bugs</b> and <b>missing features</b>. Use at your own risk and expect frequent changes.</p>
 

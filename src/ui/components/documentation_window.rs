@@ -271,6 +271,51 @@ impl DocumentationWindow {
             }
         }
     }
+
+    fn open_command_in_workbench(state: &mut AppState, command_name: &str) {
+        state.workbench_state.resp_command = format!("{} ", command_name);
+        state.workbench_state.set_cursor_pos = Some(state.workbench_state.resp_command.len());
+
+        if let Ok(mut current_window) = state.ui_panels.current_window.write() {
+            *current_window = Some(MainWindow::Workbench);
+        }
+
+        let _ = state
+            .get_sender()
+            .send(Message::Event(Arc::from(SetMainWindow(MainWindow::Workbench))));
+    }
+
+    fn command_entry(
+        &mut self,
+        ui: &mut egui::Ui,
+        display_text: String,
+        command_full_name: &str,
+        state: &mut AppState,
+    ) {
+        let is_selected = self.selected_command.as_deref() == Some(command_full_name);
+        let response = ui.selectable_label(is_selected, display_text);
+
+        if response.clicked() {
+            self.selected_command = Some(command_full_name.to_string());
+        }
+
+        if response.double_clicked() {
+            Self::open_command_in_workbench(state, command_full_name);
+        }
+    }
+
+    fn labeled_row(ui: &mut egui::Ui, title: &str, value: &str) {
+        ui.horizontal(|ui| {
+            ui.strong(title);
+            ui.label(value);
+        });
+    }
+
+    fn labeled_row_if_not_empty(ui: &mut egui::Ui, title: &str, value: &str) {
+        if !value.is_empty() {
+            Self::labeled_row(ui, title, value);
+        }
+    }
 }
 
 impl Component for DocumentationWindow {
@@ -317,36 +362,73 @@ impl Component for DocumentationWindow {
                                 egui::CollapsingHeader::new(format!("📁 {}", group_name))
                                     .default_open(false)
                                     .show(ui, |ui| {
+                                        let mut by_container: BTreeMap<String, Vec<CommandDoc>> = BTreeMap::new();
+                                        let mut parents: BTreeMap<String, CommandDoc> = BTreeMap::new();
+
                                         for cmd in commands {
-                                            let is_selected =
-                                                self.selected_command.as_ref() == Some(&cmd.name);
+                                            if cmd.info.container.is_empty() {
+                                                parents.insert(cmd.name.clone(), cmd.clone());
+                                            } else {
+                                                by_container
+                                                    .entry(cmd.info.container.clone())
+                                                    .or_default()
+                                                    .push(cmd.clone());
+                                            }
+                                        }
 
-                                            let response = ui.selectable_label(
-                                                is_selected,
+                                        for children in by_container.values_mut() {
+                                            children.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+                                        }
+
+                                        let mut container_keys: Vec<String> = by_container.keys().cloned().collect();
+                                        container_keys.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+
+                                        for container in container_keys {
+                                            egui::CollapsingHeader::new(format!("📦 {}", container))
+                                                .default_open(false)
+                                                .show(ui, |ui| {
+                                                    if let Some(parent_cmd) = parents.get(&container).cloned() {
+                                                        self.command_entry(
+                                                            ui,
+                                                            format!("  {}", &parent_cmd.name),
+                                                            &parent_cmd.name,
+                                                            state,
+                                                        );
+                                                    } else {
+                                                        ui.weak(format!("  {}", container));
+                                                    }
+
+                                                    if let Some(children) = by_container.get(&container) {
+                                                        for child in children {
+                                                            let prefix = format!("{} ", &container);
+                                                            let display = child.name.strip_prefix(&prefix).unwrap_or(&child.name);
+
+                                                            self.command_entry(
+                                                                ui,
+                                                                format!("      {}", display),
+                                                                &child.name,
+                                                                state,
+                                                            );
+                                                        }
+                                                    }
+                                                });
+                                        }
+
+                                        let mut standalone: Vec<&CommandDoc> = Vec::new();
+                                        for cmd in commands {
+                                            if cmd.info.container.is_empty() && !by_container.contains_key(&cmd.name) {
+                                                standalone.push(cmd);
+                                            }
+                                        }
+                                        standalone.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+
+                                        for cmd in standalone {
+                                            self.command_entry(
+                                                ui,
                                                 format!("  {}", &cmd.name),
+                                                &cmd.name,
+                                                state,
                                             );
-
-                                            if response.clicked() {
-                                                self.selected_command = Some(cmd.name.clone());
-                                            }
-
-                                            if response.double_clicked() {
-                                                state.workbench_state.resp_command =
-                                                    format!("{} ", cmd.name);
-
-                                                state.workbench_state.set_cursor_pos =
-                                                    Some(state.workbench_state.resp_command.len());
-
-                                                if let Ok(mut current_window) =
-                                                    state.ui_panels.current_window.write()
-                                                {
-                                                    *current_window = Some(MainWindow::Workbench);
-                                                }
-
-                                                let _ = state.get_sender().send(Message::Event(
-                                                    Arc::from(SetMainWindow(MainWindow::Workbench)),
-                                                ));
-                                            }
                                         }
                                     });
                             }
@@ -371,53 +453,18 @@ impl Component for DocumentationWindow {
                                     ui.label(&cmd.info.summary);
                                     ui.add_space(10.0);
 
-                                    if !cmd.info.group.is_empty() {
-                                        ui.horizontal(|ui| {
-                                            ui.strong("Group:");
-                                            ui.label(&cmd.info.group);
-                                        });
-                                    }
-
-                                    if !cmd.info.since.is_empty() {
-                                        ui.horizontal(|ui| {
-                                            ui.strong("Since:");
-                                            ui.label(&cmd.info.since);
-                                        });
-                                    }
-
-                                    if !cmd.info.complexity.is_empty() {
-                                        ui.horizontal(|ui| {
-                                            ui.strong("Complexity:");
-                                            ui.label(&cmd.info.complexity);
-                                        });
-                                    }
-
+                                    Self::labeled_row_if_not_empty(ui, "Group:", &cmd.info.group);
+                                    Self::labeled_row_if_not_empty(ui, "Since:", &cmd.info.since);
+                                    Self::labeled_row_if_not_empty(ui, "Complexity:", &cmd.info.complexity);
                                     if cmd.info.arity != 0 {
-                                        ui.horizontal(|ui| {
-                                            ui.strong("Arity:");
-                                            ui.label(format!("{}", cmd.info.arity));
-                                        });
+                                        Self::labeled_row(ui, "Arity:", &format!("{}", cmd.info.arity));
                                     }
-
-                                    if !cmd.info.function.is_empty() {
-                                        ui.horizontal(|ui| {
-                                            ui.strong("Function:");
-                                            ui.label(&cmd.info.function);
-                                        });
-                                    }
-
+                                    Self::labeled_row_if_not_empty(ui, "Function:", &cmd.info.function);
                                     if !cmd.info.command_flags.is_empty() {
-                                        ui.horizontal(|ui| {
-                                            ui.strong("Command Flags:");
-                                            ui.label(cmd.info.command_flags.join(", "));
-                                        });
+                                        Self::labeled_row(ui, "Command Flags:", &cmd.info.command_flags.join(", "));
                                     }
-
                                     if !cmd.info.acl_categories.is_empty() {
-                                        ui.horizontal(|ui| {
-                                            ui.strong("ACL Categories:");
-                                            ui.label(cmd.info.acl_categories.join(", "));
-                                        });
+                                        Self::labeled_row(ui, "ACL Categories:", &cmd.info.acl_categories.join(", "));
                                     }
 
                                     if !cmd.info.key_specs.is_empty() {
