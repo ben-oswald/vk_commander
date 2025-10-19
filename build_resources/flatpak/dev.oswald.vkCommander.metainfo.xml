@@ -60,15 +60,9 @@
   </screenshots>
 
   <releases>
-    <release version="0.0.2" date="2025-10-13">
+    <release version="0.0.5" date="2025-10-19">
       <description>
-        <p>Fixed issue with the port in the form for setting up Valkey connections</p>
-      </description>
-    </release>
-
-    <release version="0.0.1" date="2025-10-12">
-      <description>
-        <p>Initial development release</p>
+        <p>Initial release</p>
       </description>
     </release>
   </releases>
