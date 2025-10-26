@@ -2,6 +2,10 @@
 
 A GUI application for monitoring and analyzing Valkey databases.
 
+<a href='https://flathub.org/apps/dev.oswald.vkCommander'>
+  <img width='240' alt='Get it on Flathub' src='https://flathub.org/api/badge?locale=en'/>
+</a>
+
 ## ⚠️ Project Status
 
 This is a **personal project** in a **very early development** stage and under **active** development. It still contains
