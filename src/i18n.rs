@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use vk_macros::{EnumCount, ToString, Vector};
 
@@ -20,7 +21,7 @@ impl Default for I18N {
     }
 }
 
-#[derive(Clone, Copy, Vector, ToString, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Vector, ToString, PartialEq)]
 pub enum Language {
     English,
     German,

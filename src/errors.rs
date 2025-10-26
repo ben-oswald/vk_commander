@@ -4,6 +4,7 @@ use std::fmt::Debug;
 use std::num::ParseIntError;
 use std::sync::mpsc::{SendError, Sender};
 use std::sync::{Arc, PoisonError, RwLockReadGuard, RwLockWriteGuard, TryLockError};
+use serde_json;
 
 #[derive(Debug)]
 pub enum Error {
@@ -114,6 +115,12 @@ impl<T> From<TryLockError<RwLockWriteGuard<'_, T>>> for Box<Error> {
 
 impl From<VarError> for Error {
     fn from(value: VarError) -> Self {
+        Self::Any(value.to_string())
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
         Self::Any(value.to_string())
     }
 }

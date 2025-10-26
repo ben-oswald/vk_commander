@@ -8,7 +8,6 @@ use crate::ui::widgets::{AddConnectionPopup, PopupType};
 use crate::utils::{ValkeyClient, ValkeyUrl};
 use egui::{Align, Button, Context, Direction, Id, Label, Layout, Modal, TextWrapMode, Ui};
 use egui_extras::{Column, TableBuilder};
-use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
@@ -189,7 +188,7 @@ impl ConnectionsWindow {
         ui.allocate_ui(ui.available_size(), |ui| {
             let servers = settings.get_servers().unwrap_or_else(|e| {
                 e.show_error_dialog(sender.clone());
-                HashMap::new()
+                Vec::new()
             });
             if servers.is_empty() {
                 ui.with_layout(Layout::centered_and_justified(Direction::TopDown), |ui| {

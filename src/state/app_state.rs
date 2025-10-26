@@ -136,7 +136,7 @@ impl AppState {
                             match &command {
                                 RespCommand::Command(cmds) | RespCommand::CommandRefresh(cmds) => {
                                     if cmds.len() == 1 {
-                                        //Safely unwrap
+                                        // Safely unwrap: cmds.len() == 1, so first() is guaranteed to return Some
                                         let res =
                                             client.exec(cmds.first().unwrap()).unwrap_or_default();
                                     } else {

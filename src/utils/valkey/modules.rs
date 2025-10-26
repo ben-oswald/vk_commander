@@ -1,6 +1,5 @@
 use crate::errors::Error;
-use crate::utils::{ValkeyClient, ValkeyValue};
-
+use crate::utils::ValkeyClient;
 
 pub struct ModulInfo {
     pub name: String,
@@ -60,9 +59,15 @@ impl Module {
                 };
 
                 let module = match name.as_str() {
-                    "json" => Module::JSON { modul_info: module_info },
-                    "bf" => Module::BloomFilter { modul_info: module_info },
-                    _ => Module::Unknown { modul_info: module_info },
+                    "json" => Module::JSON {
+                        modul_info: module_info,
+                    },
+                    "bf" => Module::BloomFilter {
+                        modul_info: module_info,
+                    },
+                    _ => Module::Unknown {
+                        modul_info: module_info,
+                    },
                 };
 
                 modules.push(module);

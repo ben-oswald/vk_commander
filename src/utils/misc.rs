@@ -7,6 +7,21 @@ pub struct PathProvider;
 
 impl PathProvider {
     pub fn get_config_path() -> Result<PathBuf, Error> {
+        #[cfg(test)]
+        {
+            if let Ok(custom_home) = std::env::var("VKC_TEST_CONFIG_HOME") {
+                let base = PathBuf::from(custom_home);
+                if !base.exists() {
+                    std::fs::create_dir_all(&base)?;
+                }
+                let path = base.join(APP_NAME);
+                if !path.exists() {
+                    std::fs::create_dir_all(&path)?;
+                }
+                return Ok(path);
+            }
+        }
+
         if cfg!(target_os = "windows") {
             let path = PathBuf::from(std::env::var("APP_DATA")?);
             if !path.exists() {
