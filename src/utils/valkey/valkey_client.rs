@@ -264,7 +264,7 @@ impl ValkeyClient {
         Ok(valkey_value)
     }
 
-    pub fn exec_raw(&self, command: &str) -> Result<String, Error> {
+    fn exec_raw(&self, command: &str) -> Result<String, Error> {
         let mut stream = self.stream.write();
         let res = Self::read_stream(&mut stream, command, None)?;
         Ok(res)

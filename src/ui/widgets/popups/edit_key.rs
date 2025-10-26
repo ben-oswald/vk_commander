@@ -319,11 +319,11 @@ impl EditKey {
         for &row_index in self.rows_to_delete.iter().rev() {
             self.data.remove(row_index);
 
-            if let Some((focused_row, _)) = self.focused_cell {
+            if let Some((focused_row, focused_col)) = self.focused_cell {
                 if focused_row == row_index {
                     self.focused_cell = None;
                 } else if focused_row > row_index {
-                    self.focused_cell = Some((focused_row - 1, self.focused_cell.unwrap().1));
+                    self.focused_cell = Some((focused_row - 1, focused_col));
                 }
             }
 
