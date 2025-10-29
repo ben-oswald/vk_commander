@@ -15,11 +15,12 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 vk_macros = { path = "packages/vk_macros" }
 
-#[target.'cfg(unix)'.dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
+ashpd = "0.12.0"
 eframe = { version = "0.33.0", features = ["default_fonts", "glow", "wayland"] }
 
-#[target.'cfg(windows)'.dependencies]
-#eframe = { version = "0.33.0", features = ["default_fonts", "glow"] }
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+eframe = { version = "0.33.0", features = ["default_fonts", "glow"] }
 
 [profile.release]
 strip = true
