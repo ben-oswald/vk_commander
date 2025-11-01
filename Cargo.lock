@@ -851,6 +851,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_code_editor"
+version = "0.2.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39a1b847b0ff5a3bac4e8604eca605808970bbcdaba76b3101db1051e4206dc6"
+dependencies = [
+ "egui",
+ "serde",
+]
+
+[[package]]
 name = "egui_extras"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3011,6 +3021,7 @@ version = "0.0.5"
 dependencies = [
  "eframe",
  "egui",
+ "egui_code_editor",
  "egui_extras",
  "serde",
  "serde_json",

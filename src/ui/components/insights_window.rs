@@ -590,9 +590,9 @@ impl Component for InsightsWindow {
 
                 let Some(needs_analysis) = self.read_lock(&self.key_analysis, |analysis| {
                     analysis.last_analysis.is_none()
-                        || analysis
-                            .last_analysis
-                            .is_some_and(|last| last.elapsed() > Duration::from_secs(KEY_ANALYSIS_REFRESH_TIME))
+                        || analysis.last_analysis.is_some_and(|last| {
+                            last.elapsed() > Duration::from_secs(KEY_ANALYSIS_REFRESH_TIME)
+                        })
                 }) else {
                     return;
                 };

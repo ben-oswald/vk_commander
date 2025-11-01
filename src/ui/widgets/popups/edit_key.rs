@@ -1,6 +1,6 @@
 use crate::i18n::{I18N, LangKey};
 use crate::state::{Message, RespCommand};
-use crate::ui::widgets::popups::PopupUi;
+use crate::ui::widgets::popups::{PopupUi, code_editor};
 use crate::utils::{KeyType, format_size, text_float_filter};
 use egui::{Key, Ui};
 use egui_extras::{Column, TableBuilder};
@@ -286,8 +286,12 @@ impl EditKey {
             egui::ScrollArea::vertical()
                 .id_salt("edit_key_input_field_scroll")
                 .show(ui, |ui| {
-                    let text_edit = egui::TextEdit::multiline(value);
-                    let response = ui.add_sized(ui.available_size(), text_edit);
+                    let response = if matches!(self.key_type, KeyType::Json) {
+                        code_editor(ui, value).response
+                    } else {
+                        let text_edit = egui::TextEdit::multiline(value);
+                        ui.add_sized(ui.available_size(), text_edit)
+                    };
 
                     if response.gained_focus() {
                         self.original_values.insert(cell_id, value.clone());

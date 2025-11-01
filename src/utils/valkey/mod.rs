@@ -1,8 +1,8 @@
 mod key_type;
+mod modules;
 pub mod valkey_client;
 mod valkey_url;
 mod valkey_value;
-mod modules;
 
 pub use key_type::{KeyType, KeyTypeExtended};
 pub use valkey_url::{ValkeyUrl, ValkeyUrlBuilder};

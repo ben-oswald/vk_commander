@@ -1,10 +1,10 @@
 use crate::state::{Event, Message};
+use serde_json;
 use std::env::VarError;
 use std::fmt::Debug;
 use std::num::ParseIntError;
 use std::sync::mpsc::{SendError, Sender};
 use std::sync::{Arc, PoisonError, RwLockReadGuard, RwLockWriteGuard, TryLockError};
-use serde_json;
 
 #[derive(Debug)]
 pub enum Error {

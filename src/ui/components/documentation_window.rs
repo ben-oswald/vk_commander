@@ -282,7 +282,9 @@ impl DocumentationWindow {
 
         let _ = state
             .get_sender()
-            .send(Message::Event(Arc::from(SetMainWindow(MainWindow::Workbench))));
+            .send(Message::Event(Arc::from(SetMainWindow(
+                MainWindow::Workbench,
+            ))));
     }
 
     fn command_entry(
@@ -362,8 +364,10 @@ impl Component for DocumentationWindow {
                                 egui::CollapsingHeader::new(format!("📁 {}", group_name))
                                     .default_open(false)
                                     .show(ui, |ui| {
-                                        let mut by_container: BTreeMap<String, Vec<CommandDoc>> = BTreeMap::new();
-                                        let mut parents: BTreeMap<String, CommandDoc> = BTreeMap::new();
+                                        let mut by_container: BTreeMap<String, Vec<CommandDoc>> =
+                                            BTreeMap::new();
+                                        let mut parents: BTreeMap<String, CommandDoc> =
+                                            BTreeMap::new();
 
                                         for cmd in commands {
                                             if cmd.info.container.is_empty() {
@@ -377,17 +381,29 @@ impl Component for DocumentationWindow {
                                         }
 
                                         for children in by_container.values_mut() {
-                                            children.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+                                            children.sort_by(|a, b| {
+                                                a.name.to_lowercase().cmp(&b.name.to_lowercase())
+                                            });
                                         }
 
-                                        let mut container_keys: Vec<String> = by_container.keys().cloned().collect();
-                                        container_keys.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+                                        let mut container_keys: Vec<String> =
+                                            by_container.keys().cloned().collect();
+                                        container_keys.sort_by(|a, b| {
+                                            a.to_lowercase().cmp(&b.to_lowercase())
+                                        });
 
                                         for container in container_keys {
-                                            egui::CollapsingHeader::new(format!("📦 {}", container))
-                                                .default_open(false)
-                                                .show(ui, |ui| {
-                                                    if let Some(parent_cmd) = parents.get(&container).cloned() {
+                                            egui::CollapsingHeader::new(format!(
+                                                "📦 {}",
+                                                container
+                                            ))
+                                            .default_open(false)
+                                            .show(
+                                                ui,
+                                                |ui| {
+                                                    if let Some(parent_cmd) =
+                                                        parents.get(&container).cloned()
+                                                    {
                                                         self.command_entry(
                                                             ui,
                                                             format!("  {}", &parent_cmd.name),
@@ -398,10 +414,15 @@ impl Component for DocumentationWindow {
                                                         ui.weak(format!("  {}", container));
                                                     }
 
-                                                    if let Some(children) = by_container.get(&container) {
+                                                    if let Some(children) =
+                                                        by_container.get(&container)
+                                                    {
                                                         for child in children {
                                                             let prefix = format!("{} ", &container);
-                                                            let display = child.name.strip_prefix(&prefix).unwrap_or(&child.name);
+                                                            let display = child
+                                                                .name
+                                                                .strip_prefix(&prefix)
+                                                                .unwrap_or(&child.name);
 
                                                             self.command_entry(
                                                                 ui,
@@ -411,16 +432,21 @@ impl Component for DocumentationWindow {
                                                             );
                                                         }
                                                     }
-                                                });
+                                                },
+                                            );
                                         }
 
                                         let mut standalone: Vec<&CommandDoc> = Vec::new();
                                         for cmd in commands {
-                                            if cmd.info.container.is_empty() && !by_container.contains_key(&cmd.name) {
+                                            if cmd.info.container.is_empty()
+                                                && !by_container.contains_key(&cmd.name)
+                                            {
                                                 standalone.push(cmd);
                                             }
                                         }
-                                        standalone.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+                                        standalone.sort_by(|a, b| {
+                                            a.name.to_lowercase().cmp(&b.name.to_lowercase())
+                                        });
 
                                         for cmd in standalone {
                                             self.command_entry(
@@ -455,16 +481,36 @@ impl Component for DocumentationWindow {
 
                                     Self::labeled_row_if_not_empty(ui, "Group:", &cmd.info.group);
                                     Self::labeled_row_if_not_empty(ui, "Since:", &cmd.info.since);
-                                    Self::labeled_row_if_not_empty(ui, "Complexity:", &cmd.info.complexity);
+                                    Self::labeled_row_if_not_empty(
+                                        ui,
+                                        "Complexity:",
+                                        &cmd.info.complexity,
+                                    );
                                     if cmd.info.arity != 0 {
-                                        Self::labeled_row(ui, "Arity:", &format!("{}", cmd.info.arity));
+                                        Self::labeled_row(
+                                            ui,
+                                            "Arity:",
+                                            &format!("{}", cmd.info.arity),
+                                        );
                                     }
-                                    Self::labeled_row_if_not_empty(ui, "Function:", &cmd.info.function);
+                                    Self::labeled_row_if_not_empty(
+                                        ui,
+                                        "Function:",
+                                        &cmd.info.function,
+                                    );
                                     if !cmd.info.command_flags.is_empty() {
-                                        Self::labeled_row(ui, "Command Flags:", &cmd.info.command_flags.join(", "));
+                                        Self::labeled_row(
+                                            ui,
+                                            "Command Flags:",
+                                            &cmd.info.command_flags.join(", "),
+                                        );
                                     }
                                     if !cmd.info.acl_categories.is_empty() {
-                                        Self::labeled_row(ui, "ACL Categories:", &cmd.info.acl_categories.join(", "));
+                                        Self::labeled_row(
+                                            ui,
+                                            "ACL Categories:",
+                                            &cmd.info.acl_categories.join(", "),
+                                        );
                                     }
 
                                     if !cmd.info.key_specs.is_empty() {

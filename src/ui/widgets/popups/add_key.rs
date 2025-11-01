@@ -1,6 +1,6 @@
 use crate::i18n::{I18N, LangKey};
 use crate::state::{Message, RespCommand};
-use crate::ui::widgets::popups::PopupUi;
+use crate::ui::widgets::popups::{PopupUi, code_editor};
 use crate::utils::{KeyType, text_float_filter, text_float_filter_less_than_one};
 use egui::{ScrollArea, Ui};
 use std::string::String;
@@ -72,12 +72,14 @@ impl KeyForm {
         let indices: Vec<usize> = (0..self.col0.len()).collect();
         let now = Instant::now();
 
-        if matches!(key_type, KeyType::String | KeyType::Json) {
+        if matches!(key_type, KeyType::String) {
             ui.add(
                 egui::TextEdit::multiline(&mut self.col0[0])
                     .desired_width(ui.available_width())
                     .hint_text("Content"),
             );
+        } else if matches!(key_type, KeyType::Json) {
+            code_editor(ui, &mut self.col0[0]);
         } else {
             for i in indices {
                 ui.horizontal(|ui| {

@@ -152,10 +152,7 @@ impl eframe::App for App {
 
                     ui.horizontal(|ui| {
                         ui.label("Website:");
-                        ui.hyperlink_to(
-                            "oswald.dev",
-                            "https://oswald.dev",
-                        );
+                        ui.hyperlink_to("oswald.dev", "https://oswald.dev");
                     });
 
                     ui.horizontal(|ui| {
