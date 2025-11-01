@@ -1,3 +1,4 @@
+use crate::errors::Error;
 use crate::i18n::{I18N, LangKey};
 use crate::state::{Message, RespCommand};
 use crate::ui::widgets::popups::{PopupUi, code_editor};
@@ -49,9 +50,27 @@ impl EditKey {
                     .enumerate()
                     .map(|(index, value)| (index.to_string(), value.to_string()))
                     .collect(),
-                KeyType::String | KeyType::Json => {
+                KeyType::String => {
                     if !data.is_empty() {
                         vec![("".to_string(), data[0].to_string())]
+                    } else {
+                        vec![("".to_string(), "".to_string())]
+                    }
+                }
+                KeyType::Json => {
+                    if !data.is_empty() {
+                        let prettified = serde_json::from_str::<serde_json::Value>(&data[0])
+                            .map(|v| {
+                                serde_json::to_string_pretty(&v).unwrap_or_else(|e| {
+                                    Error::from(e).log_error();
+                                    data[0].clone()
+                                })
+                            })
+                            .unwrap_or_else(|e| {
+                                Error::from(e).log_error();
+                                data[0].clone()
+                            });
+                        vec![("".to_string(), prettified)]
                     } else {
                         vec![("".to_string(), "".to_string())]
                     }

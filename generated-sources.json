@@ -1042,6 +1042,19 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/egui_code_editor/egui_code_editor-0.2.20.crate",
+        "sha256": "39a1b847b0ff5a3bac4e8604eca605808970bbcdaba76b3101db1051e4206dc6",
+        "dest": "cargo/vendor/egui_code_editor-0.2.20"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"39a1b847b0ff5a3bac4e8604eca605808970bbcdaba76b3101db1051e4206dc6\", \"files\": {}}",
+        "dest": "cargo/vendor/egui_code_editor-0.2.20",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
         "url": "https://static.crates.io/crates/egui_extras/egui_extras-0.33.0.crate",
         "sha256": "bdced1964ad8a02a116b1307f7b4f73dbe408c5f53dcdd488f527609f261da60",
         "dest": "cargo/vendor/egui_extras-0.33.0"

@@ -184,6 +184,6 @@ impl Error {
             });
     }
     pub fn log_error(self) {
-        eprintln!("Failed to send error message: {}", self);
+        eprintln!("An error occurred: {}", self);
     }
 }
