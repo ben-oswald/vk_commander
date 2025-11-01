@@ -72,7 +72,7 @@ impl KeyForm {
         let indices: Vec<usize> = (0..self.col0.len()).collect();
         let now = Instant::now();
 
-        if matches!(key_type, KeyType::String) {
+        if matches!(key_type, KeyType::String | KeyType::Json) {
             ui.add(
                 egui::TextEdit::multiline(&mut self.col0[0])
                     .desired_width(ui.available_width())
@@ -262,6 +262,15 @@ impl AddKey {
                     data = "\"\"".to_owned();
                 }
                 "SET"
+            }
+            KeyType::Json => {
+                if let Some(s) = self.key_form.col0.first() {
+                    let escaped = s.replace('"', "\\\"");
+                    data = format!("$ \"{}\"", escaped);
+                } else {
+                    data = "$ \"{}\"".to_owned();
+                }
+                "JSON.SET"
             }
             KeyType::Bloom => {
                 for col1 in col1_data.iter() {

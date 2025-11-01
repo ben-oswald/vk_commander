@@ -234,7 +234,8 @@ impl WorkerThread {
                                         | KeyType::List
                                         | KeyType::Set
                                         | KeyType::SortedSet
-                                        | KeyType::String => {
+                                        | KeyType::String
+                                        | KeyType::Json => {
                                             format!("MEMORY USAGE {quoted_key}")
                                         }
                                         KeyType::Bloom => format!("BF.INFO {quoted_key} SIZE"),
@@ -1066,6 +1067,7 @@ impl BrowserWindow {
                                 (format!("ZRANGE {quoted_key} 0 499 WITHSCORES"), kt)
                             }
                             KeyType::String => (format!("GET {quoted_key}"), kt),
+                            KeyType::Json => (format!("JSON.GET {quoted_key}"), kt),
                             KeyType::Bloom => (format!("BF.INFO {quoted_key}"), kt),
                         },
                         _ => {

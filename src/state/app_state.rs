@@ -139,8 +139,10 @@ impl AppState {
                                         // Safely unwrap: cmds.len() == 1, so first() is guaranteed to return Some
                                         let res =
                                             client.exec(cmds.first().unwrap()).unwrap_or_default();
+                                        dbg!(res);
                                     } else {
                                         let res = client.exec_pipelined(cmds);
+                                        dbg!(res);
                                     }
                                     if matches!(command, RespCommand::CommandRefresh(_)) {
                                         sender.send(Message::Refresh).unwrap_or_else(|e| {

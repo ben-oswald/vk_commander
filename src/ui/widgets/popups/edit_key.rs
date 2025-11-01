@@ -49,7 +49,7 @@ impl EditKey {
                     .enumerate()
                     .map(|(index, value)| (index.to_string(), value.to_string()))
                     .collect(),
-                KeyType::String => {
+                KeyType::String | KeyType::Json => {
                     if !data.is_empty() {
                         vec![("".to_string(), data[0].to_string())]
                     } else {
@@ -108,7 +108,7 @@ impl EditKey {
                         row.0.replace("\"", "\\\"")
                     )]
                 }
-                KeyType::String => {
+                KeyType::String | KeyType::Json => {
                     vec![format!("DEL \"{}\"", key.replace("\"", "\\\""))]
                 }
                 KeyType::Bloom => {
@@ -254,6 +254,9 @@ impl EditKey {
                                 row.1.replace("\"", "\\\"")
                             )]
                         }
+                        KeyType::Json => {
+                            vec![]
+                        }
                         KeyType::Bloom => {
                             // Bloom filters don't support editing of individual items
                             panic!("Not implemented");
@@ -294,11 +297,20 @@ impl EditKey {
                         && let Some(original_text) = self.original_values.get(&cell_id)
                     {
                         if *value != *original_text {
-                            let commands = vec![format!(
-                                "SET \"{}\" \"{}\"",
-                                self.key.replace("\"", "\\\""),
-                                value.replace("\"", "\\\"")
-                            )];
+                            let commands = if matches!(self.key_type, KeyType::Json) {
+                                let escaped_double = value.replace("\"", "\\\"");
+                                vec![format!(
+                                    "JSON.SET \"{}\" $ \"{}\"",
+                                    self.key.replace("\"", "\\\""),
+                                    escaped_double
+                                )]
+                            } else {
+                                vec![format!(
+                                    "SET \"{}\" \"{}\"",
+                                    self.key.replace("\"", "\\\""),
+                                    value.replace("\"", "\\\"")
+                                )]
+                            };
 
                             sender
                                 .send(Message::ExecRespCommand(RespCommand::Command(commands)))
@@ -376,6 +388,7 @@ impl EditKey {
                             && !double_field_name
                     }
                     KeyType::String => false,
+                    KeyType::Json => false,
                     KeyType::Bloom => false,
                 };
 
@@ -448,6 +461,9 @@ impl EditKey {
                 )]
             }
             KeyType::String => {
+                return;
+            }
+            KeyType::Json => {
                 return;
             }
             KeyType::Bloom => {
@@ -870,7 +886,7 @@ impl PopupUi for EditKey {
                     *open = false;
                 }
 
-                if matches!(self.key_type, KeyType::String) {
+                if matches!(self.key_type, KeyType::String | KeyType::Json) {
                     self.input_field(ui, sender);
                 } else if matches!(self.key_type, KeyType::Bloom) {
                     self.bloom_filter(ui, sender);

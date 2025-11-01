@@ -44,6 +44,9 @@ impl<T: AsRef<str>> From<T> for KeyTypeExtended {
             "set" => KeyTypeExtended::KeyType(KeyType::Set),
             "zset" => KeyTypeExtended::KeyType(KeyType::SortedSet),
             "string" => KeyTypeExtended::KeyType(KeyType::String),
+            "json" => KeyTypeExtended::KeyType(KeyType::Json),
+            "ReJSON" => KeyTypeExtended::KeyType(KeyType::Json),
+            "ReJSON-RL" => KeyTypeExtended::KeyType(KeyType::Json),
             "bloomfltr" => KeyTypeExtended::KeyType(KeyType::Bloom),
             _ => KeyTypeExtended::None,
         }
@@ -64,6 +67,7 @@ pub enum KeyType {
     Set,
     SortedSet,
     String,
+    Json,
     Bloom,
 }
 
@@ -75,6 +79,7 @@ impl KeyType {
             KeyType::Set => "TYPE set",
             KeyType::SortedSet => "TYPE zset",
             KeyType::String => "TYPE string",
+            KeyType::Json => "TYPE json",
             KeyType::Bloom => "TYPE bloomfltr",
         }
     }
@@ -88,6 +93,9 @@ impl<T: AsRef<str>> From<T> for KeyType {
             "set" => KeyType::Set,
             "zset" => KeyType::SortedSet,
             "string" => KeyType::String,
+            "json" => KeyType::Json,
+            "ReJSON" => KeyType::Json,
+            "ReJSON-RL" => KeyType::Json,
             "bloomfltr" => KeyType::Bloom,
             _ => KeyType::Hash,
         }
@@ -112,6 +120,7 @@ impl Display for KeyType {
             KeyType::Set => write!(f, "Set"),
             KeyType::SortedSet => write!(f, "Sorted Set"),
             KeyType::String => write!(f, "String"),
+            KeyType::Json => write!(f, "JSON"),
             KeyType::Bloom => write!(f, "Bloomfilter"),
         }
     }
