@@ -36,10 +36,6 @@
     <display_length compare="ge">800</display_length>
   </requires>
 
-  <custom>
-    <value key="flathub::manifest">https://github.com/ben-oswald/dev.oswald.vkCommander/blob/v0.0.6/dev.oswald.vkCommander.yml</value>
-  </custom>
-
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/ben-oswald/vk_commander/refs/heads/master/screenshots/browser.png</image>
@@ -60,7 +56,7 @@
   </screenshots>
 
   <releases>
-    <release version="0.0.6" date="2025-11-02">
+    <release version="0.0.7" date="2025-11-02">
       <description>
         <p>Updated UI</p>
         <p>Basic JSON support</p>
