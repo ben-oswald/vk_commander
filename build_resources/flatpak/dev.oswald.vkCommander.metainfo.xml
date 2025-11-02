@@ -37,7 +37,7 @@
   </requires>
 
   <custom>
-    <value key="flathub::manifest">https://github.com/ben-oswald/dev.oswald.vkCommander/blob/v0.0.5/dev.oswald.vkCommander.yml</value>
+    <value key="flathub::manifest">https://github.com/ben-oswald/dev.oswald.vkCommander/blob/v0.0.6/dev.oswald.vkCommander.yml</value>
   </custom>
 
   <screenshots>
@@ -60,9 +60,10 @@
   </screenshots>
 
   <releases>
-    <release version="0.0.5" date="2025-10-19">
+    <release version="0.0.6" date="2025-11-02">
       <description>
-        <p>Initial release</p>
+        <p>Updated UI</p>
+        <p>Basic JSON support</p>
       </description>
     </release>
   </releases>
