@@ -1,11 +1,11 @@
 use crate::errors::Error;
 use crate::i18n::{I18N, LangKey, Language};
 use crate::state::Message;
-use crate::state::message::{Event, MainWindow, RespCommand};
+use crate::state::message::{BannerParams, Event, MainWindow, RespCommand};
 use crate::state::workbench_state::WorkbenchState;
 use crate::ui::components;
 use crate::ui::components::{ConnectionsWindow, UIComponents, UIPanels};
-use crate::ui::widgets::{ErrorModal, InfoModal, Modal, Popup, PopupType, SettingsPopup};
+use crate::ui::widgets::{Banner, ErrorModal, InfoModal, Modal, Popup, PopupType, SettingsPopup};
 use crate::utils::{AppSettings, CommandRegistry, ValkeyClient, get_commands_dir, random_string};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
@@ -23,6 +23,7 @@ pub struct AppState {
     pub resizable: bool,
     pub workbench_state: WorkbenchState,
     pub command_registry: Arc<CommandRegistry>,
+    pub banners: Vec<Banner>,
     i18n: Arc<I18N>,
     settings: Arc<AppSettings>,
     sender: Sender<Message>,
@@ -70,6 +71,7 @@ impl AppState {
             resizable,
             workbench_state: Default::default(),
             command_registry: Arc::new(command_registry),
+            banners: Vec::new(),
         }
     }
 
@@ -102,6 +104,14 @@ impl AppState {
                     Event::SetConnection(vc) => {
                         self.set_vc_client(vc.clone());
                     }
+                    Event::ShowBanner(params) => {
+                        if let Ok(id) = random_string(12) {
+                            self.banners.push(Banner::from_params(id, params));
+                        }
+                    }
+                    Event::DismissBanner(id) => {
+                        self.banners.retain(|b| b.id() != id);
+                    }
                 },
                 Message::ToggleSidebar => {
                     self.ui_panels.left_side_bar_open = !self.ui_panels.left_side_bar_open;
@@ -132,18 +142,96 @@ impl AppState {
                         let client = client.clone();
                         let sender = self.get_sender();
                         let handle = thread::spawn(move || {
-                            //TODO! Impl
+                            let is_error_like = |s: &str| -> bool {
+                                const PREFIXES: &[&str] = &[
+                                    "BUSY ",
+                                    "CLUSTERDOWN ",
+                                    "ERR ",
+                                    "EXECABORT ",
+                                    "LOADING ",
+                                    "MASTERDOWN ",
+                                    "MISCONF ",
+                                    "NOAUTH ",
+                                    "NOPERM ",
+                                    "NOREPLICAS ",
+                                    "NOSCRIPT ",
+                                    "OOM ",
+                                    "READONLY ",
+                                    "TRYAGAIN ",
+                                    "WRONGPASS ",
+                                    "WRONGTYPE ",
+                                ];
+                                PREFIXES.iter().any(|p| s.starts_with(p))
+                            };
+
                             match &command {
                                 RespCommand::Command(cmds) | RespCommand::CommandRefresh(cmds) => {
-                                    if cmds.len() == 1 {
+                                    let mut maybe_error_msg: Option<String> = None;
+                                    let mut responses: Vec<String> = Vec::new();
+                                    let result = if cmds.len() == 1 {
                                         // Safely unwrap: cmds.len() == 1, so first() is guaranteed to return Some
-                                        let res =
-                                            client.exec(cmds.first().unwrap()).unwrap_or_default();
-                                        //dbg!(res);
+                                        client.exec(cmds.first().unwrap())
                                     } else {
-                                        let res = client.exec_pipelined(cmds);
-                                        //dbg!(res);
+                                        client.exec_pipelined(cmds)
+                                    };
+
+                                    match result {
+                                        Ok(res_vec) => {
+                                            if let Some(err) =
+                                                res_vec.iter().find(|s| is_error_like(s))
+                                            {
+                                                maybe_error_msg = Some(err.clone());
+                                            } else {
+                                                responses = res_vec;
+                                            }
+                                        }
+                                        Err(e) => {
+                                            maybe_error_msg = Some(e.to_string());
+                                        }
                                     }
+
+                                    if let Some(message) = maybe_error_msg {
+                                        let _ = sender.send(Message::Event(Arc::new(
+                                            Event::ShowBanner(BannerParams {
+                                                header: "Server error".into(),
+                                                message,
+                                                kind: crate::state::message::BannerKind::Error,
+                                                duration_ms: 10_000,
+                                                request: None,
+                                            }),
+                                        )));
+                                    } else {
+                                        let mut response = if responses.is_empty() {
+                                            "OK".to_string()
+                                        } else {
+                                            responses.join("\n")
+                                        };
+                                        const MAX_RESPONSE_CHARS: usize = 1024;
+                                        const MAX_REQUEST_CHARS: usize = 32;
+                                        if response.len() > MAX_RESPONSE_CHARS {
+                                            response.truncate(MAX_RESPONSE_CHARS);
+                                            response.push_str("\n…");
+                                        }
+                                        let header = match &command {
+                                            RespCommand::CommandRefresh(_) => "Success",
+                                            RespCommand::Command(_) => "Successfully updated",
+                                        };
+                                        let mut request = cmds.join(" ");
+                                        if request.len() > MAX_REQUEST_CHARS {
+                                            request.truncate(32);
+                                            request.push_str("[...]");
+                                        }
+                                        let _ = sender.send(Message::Event(Arc::new(
+                                            Event::ShowBanner(BannerParams {
+                                                header: header.into(),
+                                                message: response,
+                                                kind: crate::state::message::BannerKind::Success,
+                                                duration_ms: 3000,
+                                                request: Some(request),
+                                            }),
+                                        )));
+                                    }
+
                                     if matches!(command, RespCommand::CommandRefresh(_)) {
                                         sender.send(Message::Refresh).unwrap_or_else(|e| {
                                             eprintln!("Error sending refresh message: {e}");

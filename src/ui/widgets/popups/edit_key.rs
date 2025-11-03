@@ -1,6 +1,6 @@
 use crate::errors::Error;
 use crate::i18n::{I18N, LangKey};
-use crate::state::{Message, RespCommand};
+use crate::state::{BannerKind, BannerParams, Event, Message, RespCommand};
 use crate::ui::widgets::popups::{PopupUi, code_editor};
 use crate::utils::{KeyType, format_size, text_float_filter};
 use egui::{Key, Ui};
@@ -320,26 +320,49 @@ impl EditKey {
                         && let Some(original_text) = self.original_values.get(&cell_id)
                     {
                         if *value != *original_text {
-                            let commands = if matches!(self.key_type, KeyType::Json) {
-                                let escaped_double = value.replace("\"", "\\\"");
-                                vec![format!(
-                                    "JSON.SET \"{}\" $ \"{}\"",
-                                    self.key.replace("\"", "\\\""),
-                                    escaped_double
-                                )]
+                            let maybe_commands = if matches!(self.key_type, KeyType::Json) {
+                                let send_invalid_json_banner = |msg: String| {
+                                    let _ = sender.send(Message::Event(Arc::new(
+                                        Event::ShowBanner(BannerParams {
+                                            header: "Invalid JSON".into(),
+                                            message: msg,
+                                            kind: BannerKind::Error,
+                                            duration_ms: 10_000,
+                                            request: None,
+                                        }),
+                                    )));
+                                };
+                                if value.trim().is_empty() {
+                                    send_invalid_json_banner("JSON value cannot be empty".into());
+                                    None
+                                } else if let Err(e) =
+                                    serde_json::from_str::<serde_json::Value>(value)
+                                {
+                                    send_invalid_json_banner(e.to_string());
+                                    None
+                                } else {
+                                    let escaped_double = value.replace("\"", "\\\"");
+                                    Some(vec![format!(
+                                        "JSON.SET \"{}\" $ \"{}\"",
+                                        self.key.replace("\"", "\\\""),
+                                        escaped_double
+                                    )])
+                                }
                             } else {
-                                vec![format!(
+                                Some(vec![format!(
                                     "SET \"{}\" \"{}\"",
                                     self.key.replace("\"", "\\\""),
                                     value.replace("\"", "\\\"")
-                                )]
+                                )])
                             };
 
-                            sender
-                                .send(Message::ExecRespCommand(RespCommand::Command(commands)))
-                                .unwrap_or_else(|e| {
-                                    eprintln!("Error sending message: {e}");
-                                });
+                            if let Some(commands) = maybe_commands {
+                                sender
+                                    .send(Message::ExecRespCommand(RespCommand::Command(commands)))
+                                    .unwrap_or_else(|e| {
+                                        eprintln!("Error sending message: {e}");
+                                    });
+                            }
                         }
 
                         self.original_values.remove(&cell_id);

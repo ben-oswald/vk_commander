@@ -9,7 +9,7 @@ pub struct ModulInfo {
 }
 
 pub enum Module {
-    JSON { modul_info: ModulInfo },
+    Json { modul_info: ModulInfo },
     BloomFilter { modul_info: ModulInfo },
     Unknown { modul_info: ModulInfo },
 }
@@ -59,7 +59,7 @@ impl Module {
                 };
 
                 let module = match name.as_str() {
-                    "json" => Module::JSON {
+                    "json" => Module::Json {
                         modul_info: module_info,
                     },
                     "bf" => Module::BloomFilter {

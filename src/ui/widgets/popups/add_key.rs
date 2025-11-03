@@ -1,5 +1,5 @@
 use crate::i18n::{I18N, LangKey};
-use crate::state::{Message, RespCommand};
+use crate::state::{BannerKind, BannerParams, Event, Message, RespCommand};
 use crate::ui::widgets::popups::{PopupUi, code_editor};
 use crate::utils::{KeyType, text_float_filter, text_float_filter_less_than_one};
 use egui::{ScrollArea, Ui};
@@ -215,6 +215,16 @@ impl AddKey {
             }
         };
 
+        let send_error_banner = |message: String| {
+            let _ = sender.send(Message::Event(Arc::new(Event::ShowBanner(BannerParams {
+                header: "Invalid JSON".into(),
+                message,
+                kind: BannerKind::Error,
+                duration_ms: 10_000,
+                request: None,
+            }))));
+        };
+
         for col0 in col0_data.iter_mut() {
             *col0 = quote_if_needed(col0);
         }
@@ -267,10 +277,15 @@ impl AddKey {
             }
             KeyType::Json => {
                 if let Some(s) = self.key_form.col0.first() {
+                    if let Err(e) = serde_json::from_str::<serde_json::Value>(s) {
+                        send_error_banner(e.to_string());
+                        return;
+                    }
                     let escaped = s.replace('"', "\\\"");
                     data = format!("$ \"{}\"", escaped);
                 } else {
-                    data = "$ \"{}\"".to_owned();
+                    send_error_banner("JSON value cannot be empty".into());
+                    return;
                 }
                 "JSON.SET"
             }

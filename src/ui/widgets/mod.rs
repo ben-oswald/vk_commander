@@ -1,3 +1,4 @@
+mod banner;
 mod dialogs;
 mod error_modal;
 mod info_modal;
@@ -6,6 +7,7 @@ mod popup;
 mod popups;
 mod shimmer;
 
+pub use banner::Banner;
 pub use dialogs::ConfirmDialog;
 pub use error_modal::ErrorModal;
 pub use info_modal::InfoModal;

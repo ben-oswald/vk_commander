@@ -29,6 +29,8 @@ pub enum Event {
     DeleteServer(String),
     SetLanguage(Language),
     SetConnection(Arc<ValkeyClient>),
+    ShowBanner(BannerParams),
+    DismissBanner(String), // id
 }
 
 #[derive(Clone, Copy)]
@@ -44,4 +46,21 @@ pub struct Info {
     pub title: String,
     pub message: String,
     pub callback: Option<fn()>,
+}
+
+#[derive(Clone, Copy)]
+pub enum BannerKind {
+    Info,
+    Error,
+    Success,
+}
+
+pub struct BannerParams {
+    pub header: String,
+    pub message: String,
+    pub kind: BannerKind,
+    /// Duration in milliseconds the banner stays visible before auto-dismiss.
+    pub duration_ms: u64,
+    /// Request text to display alongside the response [optional]
+    pub request: Option<String>,
 }

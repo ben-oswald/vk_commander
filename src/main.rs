@@ -7,6 +7,8 @@ use eframe::egui;
 use vk_commander::state::AppState;
 
 use eframe::HardwareAcceleration;
+use std::sync::Arc;
+use vk_commander::state::{BannerKind, BannerParams, Event, Message};
 use vk_commander::ui::components::UIComponents;
 use vk_commander::ui::widgets::ErrorModal;
 use vk_commander::ui::{Component, Widget};
@@ -121,6 +123,29 @@ impl eframe::App for App {
                 });
         }
 
+        let now = std::time::Instant::now();
+        self.state.banners.retain(|b| b.still_visible(now, 300));
+
+        let mut y_offset = 0.0_f32;
+        let margin = 12.0_f32;
+        let banner_width = 360.0_f32;
+
+        for i in 0..self.state.banners.len() {
+            let idx = self.state.banners.len() - 1 - i; // draw the newest on bottom
+            let banner_id = self.state.banners[idx].id().to_string();
+            let (used_height, dismiss) = {
+                let b = &mut self.state.banners[idx];
+                b.show(ctx, now, y_offset, margin, banner_width)
+            };
+            y_offset += used_height + margin;
+            if dismiss {
+                let _ = self
+                    .state
+                    .get_sender()
+                    .send(Message::Event(Arc::new(Event::DismissBanner(banner_id))));
+            }
+        }
+
         if self.state.show_about {
             let response = egui::Window::new("About vkCommander")
                 .open(&mut self.state.show_about)
@@ -163,6 +188,7 @@ impl eframe::App for App {
                         );
                     });
 
+                    ui.separator();
                     ui.add_space(10.0);
 
                     ui.button("Close").clicked()

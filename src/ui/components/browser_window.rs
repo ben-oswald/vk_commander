@@ -1,7 +1,7 @@
 use crate::errors::Error;
 use crate::i18n::LangKey;
 use crate::state::Event::ShowError;
-use crate::state::{AppState, Message};
+use crate::state::{AppState, Message, RespCommand};
 use crate::ui::Component;
 use crate::ui::widgets::{EditKey, PopupType, shimmer_inline};
 use crate::utils::{KeyType, KeyTypeExtended, ValkeyClient, ValkeyUrl, format_size};
@@ -639,7 +639,7 @@ impl Component for BrowserWindow {
                                     .clicked()
                                 {
                                     let sender = state.get_sender();
-                                    if let Some(client) = state.valkey_client.clone() {
+                                    if let Some(_client) = state.valkey_client.clone() {
                                         let command = if let Some(key_to_rename) =
                                             &self.key_to_rename
                                         {
@@ -660,19 +660,17 @@ impl Component for BrowserWindow {
                                         } else {
                                             "PING".into()
                                         };
-                                        let i18n = state.i18n();
-                                        thread::spawn(move || {
-                                            client.exec(&command).unwrap_or_else(|e| {
-                                                e.show_error_dialog(sender.clone());
-                                                vec![]
-                                            });
-                                            sender.send(Message::Refresh).unwrap_or_else(|e| {
+
+                                        sender
+                                            .send(Message::ExecRespCommand(
+                                                RespCommand::CommandRefresh(vec![command]),
+                                            ))
+                                            .unwrap_or_else(|e| {
                                                 eprintln!(
                                                     "{}: {e}",
-                                                    i18n.get(LangKey::ErrorSendingRefreshWinMsg)
+                                                    state.i18n().get(LangKey::ErrorSendMsg)
                                                 )
                                             });
-                                        });
                                     } else {
                                         sender
                                             .send(Message::Event(Arc::from(ShowError(
