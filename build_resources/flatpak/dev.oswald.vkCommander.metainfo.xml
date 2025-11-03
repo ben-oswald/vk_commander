@@ -56,10 +56,9 @@
   </screenshots>
 
   <releases>
-    <release version="0.0.7" date="2025-11-02">
+    <release version="0.0.8" date="2025-11-03">
       <description>
-        <p>Updated UI</p>
-        <p>Basic JSON support</p>
+        <p>Added a banner that displays details of actions performed on the database.</p>
       </description>
     </release>
   </releases>
