@@ -86,7 +86,9 @@ impl AppState {
                         self.info = InfoModal::from(i);
                     }
                     Event::CloseInfo() => {
-                        self.info = InfoModal::default();
+                        if self.info.on_close.is_none() {
+                            self.info = InfoModal::default();
+                        }
                     }
                     Event::ShowError(s) => {
                         self.info.open = false;

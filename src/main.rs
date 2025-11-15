@@ -4,11 +4,12 @@
 use crate::egui::ViewportBuilder;
 use crate::egui::vec2;
 use eframe::egui;
-use vk_commander::state::AppState;
+use vk_commander::state::{AppState, Info};
 
 use eframe::HardwareAcceleration;
 use std::sync::Arc;
-use vk_commander::state::{BannerKind, BannerParams, Event, Message};
+use vk_commander::errors::Error;
+use vk_commander::state::{Event, Message};
 use vk_commander::ui::components::UIComponents;
 use vk_commander::ui::widgets::ErrorModal;
 use vk_commander::ui::{Component, Widget};
@@ -83,7 +84,11 @@ impl eframe::App for App {
                 });
                 ui.separator();
                 ui.add_space(8.0);
-                ui.label(&self.state.info.message);
+                egui::ScrollArea::vertical()
+                    .max_height(300.0)
+                    .show(ui, |ui| {
+                        ui.label(&self.state.info.message);
+                    });
                 ui.add_space(8.0);
                 if self.state.info.on_close.is_some() {
                     ui.separator();
@@ -186,6 +191,22 @@ impl eframe::App for App {
                             "github.com/ben-oswald/vk_commander",
                             "https://github.com/ben-oswald/vk_commander",
                         );
+                    });
+                    
+                    ui.separator();
+
+                    ui.horizontal(|ui| {
+                        ui.label("This software uses parts of Valkey, licenses under");
+
+                        if ui.add(egui::Button::new("BSD 3-Clause").frame(false)).clicked() {
+                            sender.send(Message::Event(Arc::from(Event::ShowInfo(Info{
+                                title: "BSD 3-Clause License".into(),
+                                message: include_str!("../valkey_license.txt").into(),
+                                callback: Some(|| {}),
+                            })))).unwrap_or_else(|e| {
+                                Error::from(e).show_error_dialog(sender.clone())
+                            });
+                        };
                     });
 
                     ui.separator();

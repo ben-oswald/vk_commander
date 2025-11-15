@@ -13,7 +13,8 @@ use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
 
-const MIN_VALKEY_VERSION: (u8, u8, u8) = (8, 0, 0);
+const MIN_VALKEY_VERSION: (u8, u8, u8) = (5, 0, 0);
+const MIN_RECOMMENDED_VALKEY_VERSION: (u8, u8, u8) = (8, 0, 0);
 const SUPPORTED_SERVERS: [&str; 1] = ["valkey"];
 const PARTIALLY_SUPPORTED_SERVERS: [&str; 1] = ["redis"];
 const SUPPORTED_PROTOCOLS: [&str; 1] = ["RESP3"];
@@ -141,6 +142,28 @@ impl ValkeyClient {
                         version
                     )))?;
                 }
+
+                if version_number < MIN_RECOMMENDED_VALKEY_VERSION {
+                    sender.send(Message::Event(Arc::from(Event::ShowInfo(Info {
+                        title: i18n.get(LangKey::ValkeyVersionWarningTitle),
+                        message: format!(
+                            "{}\n\
+                        {} : {}\n\
+                        {} : {}",
+                            i18n.get(LangKey::ValkeyServerBelowRecommendedVersion(
+                                MIN_RECOMMENDED_VALKEY_VERSION.0,
+                                MIN_RECOMMENDED_VALKEY_VERSION.1,
+                                SUPPORTED_PROTOCOLS[0]
+                            )),
+                            i18n.get(LangKey::YourServer),
+                            server,
+                            i18n.get(LangKey::Version),
+                            version
+                        ),
+                        callback: Some(|| {}),
+                    }))))?;
+                }
+
                 if !SUPPORTED_SERVERS.contains(&server.as_str()) {
                     if !PARTIALLY_SUPPORTED_SERVERS.contains(&server.as_str()) {
                         return Err(Error::Network(format!(

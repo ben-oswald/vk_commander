@@ -98,6 +98,7 @@ impl ui::Widget for Popup {
         resizable: bool,
     ) -> Result<(), Error> {
         let mut should_close = false;
+        let prev_open = self.open;
         let display_title = if self.title.len() > 48 {
             format!("{}...", &self.title[..48])
         } else {
@@ -120,7 +121,28 @@ impl ui::Widget for Popup {
                     ui.separator();
                     ui.label(i18n.get(LangKey::NothingToDisplay));
                 }
-                popup => {
+                PopupType::AddConnection(popup) => {
+                    let mut popup_open = true;
+                    popup.ui(ui, &sender, &i18n, &mut popup_open);
+                    if !popup_open {
+                        should_close = true;
+                    }
+                }
+                PopupType::Settings(popup) => {
+                    let mut popup_open = true;
+                    popup.ui(ui, &sender, &i18n, &mut popup_open);
+                    if !popup_open {
+                        should_close = true;
+                    }
+                }
+                PopupType::AddKey(popup) => {
+                    let mut popup_open = true;
+                    popup.ui(ui, &sender, &i18n, &mut popup_open);
+                    if !popup_open {
+                        should_close = true;
+                    }
+                }
+                PopupType::EditKey(popup) => {
                     let mut popup_open = true;
                     popup.ui(ui, &sender, &i18n, &mut popup_open);
                     if !popup_open {
@@ -131,6 +153,13 @@ impl ui::Widget for Popup {
 
         if should_close {
             self.open = false;
+        } else if prev_open && !self.open {
+            if let PopupType::EditKey(edit_key) = &mut self.popup_type {
+                if edit_key.has_unsaved_changes() {
+                    self.open = true;
+                    edit_key.open_unsaved_changes_dialog();
+                }
+            }
         }
 
         Ok(())

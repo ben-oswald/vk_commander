@@ -94,6 +94,8 @@ pub enum LangKey {
     IdentifyServerFailed,
     GetServerVersionFailed,
     UnsupportedValkeyServerError(u8, u8, &'static str),
+    ValkeyVersionWarningTitle,
+    ValkeyServerBelowRecommendedVersion(u8, u8, &'static str),
     UnsupportedServer,
     PartiallySupportedServerError(u8, u8, &'static str),
     YourServer,
@@ -262,6 +264,19 @@ impl I18N {
             LangKey::GetServerVersionFailed => self.get_lang("GET_SERVER_VERSION_FAILED"),
             LangKey::UnsupportedValkeyServerError(major, minor, protocol) => {
                 let template = self.get_lang("UNSUPPORTED_VALKEY_SERVER_ERROR");
+                let mut params: HashMap<&str, &str> = HashMap::new();
+                let major = major.to_string();
+                let minor = minor.to_string();
+                params.insert("expected_version_major", &major);
+                params.insert("expected_version_minor", &minor);
+                params.insert("expected_protocols", protocol);
+                fill_template(&template, &params)
+            }
+            LangKey::ValkeyVersionWarningTitle => {
+                self.get_lang("VALKEY_VERSION_WARNING_TITLE")
+            }
+            LangKey::ValkeyServerBelowRecommendedVersion(major, minor, protocol) => {
+                let template = self.get_lang("VALKEY_SERVER_BELOW_RECOMMENDED_VERSION");
                 let mut params: HashMap<&str, &str> = HashMap::new();
                 let major = major.to_string();
                 let minor = minor.to_string();

@@ -9,7 +9,7 @@ pub use add_connection_popup::AddConnectionPopup;
 pub use add_key::AddKey;
 pub use edit_key::EditKey;
 use egui::text_edit::TextEditOutput;
-use egui_code_editor::CodeEditor;
+use egui_code_editor::{CodeEditor};
 pub use settings_popup::SettingsPopup;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;

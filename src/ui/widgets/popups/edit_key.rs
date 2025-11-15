@@ -5,7 +5,7 @@ use crate::ui::widgets::popups::{PopupUi, code_editor};
 use crate::utils::{KeyType, format_size, text_float_filter};
 use egui::{Key, Ui};
 use egui_extras::{Column, TableBuilder};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 
@@ -15,6 +15,7 @@ pub struct EditKey {
     key: String,
     key_type: KeyType,
     data: Vec<(String, String)>,
+    original_data: Vec<(String, String)>,
     focused_cell: Option<(usize, usize)>,
     original_values: HashMap<(usize, usize), String>,
     rows_to_delete: Vec<usize>,
@@ -22,60 +23,65 @@ pub struct EditKey {
     new_field_value: String,
     show_add_form: bool,
     i18n: Arc<I18N>,
+    has_unsaved_changes: bool,
+    show_unsaved_dialog: bool,
 }
 
 impl EditKey {
     pub fn new(key: String, key_type: KeyType, data: Vec<String>, i18n: Arc<I18N>) -> Self {
+        let data_vec: Vec<(String, String)> = match key_type {
+            KeyType::Hash | KeyType::SortedSet | KeyType::Bloom => data
+                .iter()
+                .enumerate()
+                .step_by(2)
+                .map(|(index, value)| {
+                    (
+                        value.to_string(),
+                        data.get(index + 1).unwrap_or(&"".to_string()).to_string(),
+                    )
+                })
+                .collect(),
+            KeyType::Set => data
+                .iter()
+                .map(|value| (value.to_string(), "".to_string()))
+                .collect(),
+            KeyType::List => data
+                .iter()
+                .enumerate()
+                .map(|(index, value)| (index.to_string(), value.to_string()))
+                .collect(),
+            KeyType::String => {
+                if !data.is_empty() {
+                    vec![("".to_string(), data[0].to_string())]
+                } else {
+                    vec![("".to_string(), "".to_string())]
+                }
+            }
+            KeyType::Json => {
+                if !data.is_empty() {
+                    let prettified = serde_json::from_str::<serde_json::Value>(&data[0])
+                        .map(|v| {
+                            serde_json::to_string_pretty(&v).unwrap_or_else(|e| {
+                                Error::from(e).log_error();
+                                data[0].clone()
+                            })
+                        })
+                        .unwrap_or_else(|e| {
+                            Error::from(e).log_error();
+                            data[0].clone()
+                        });
+                    vec![("".to_string(), prettified)]
+                } else {
+                    vec![("".to_string(), "".to_string())]
+                }
+            }
+        };
+
         Self {
             key,
             key_type,
-            data: match key_type {
-                KeyType::Hash | KeyType::SortedSet | KeyType::Bloom => data
-                    .iter()
-                    .enumerate()
-                    .step_by(2)
-                    .map(|(index, value)| {
-                        (
-                            value.to_string(),
-                            data.get(index + 1).unwrap_or(&"".to_string()).to_string(),
-                        )
-                    })
-                    .collect(),
-                KeyType::Set => data
-                    .iter()
-                    .map(|value| (value.to_string(), "".to_string()))
-                    .collect(),
-                KeyType::List => data
-                    .iter()
-                    .enumerate()
-                    .map(|(index, value)| (index.to_string(), value.to_string()))
-                    .collect(),
-                KeyType::String => {
-                    if !data.is_empty() {
-                        vec![("".to_string(), data[0].to_string())]
-                    } else {
-                        vec![("".to_string(), "".to_string())]
-                    }
-                }
-                KeyType::Json => {
-                    if !data.is_empty() {
-                        let prettified = serde_json::from_str::<serde_json::Value>(&data[0])
-                            .map(|v| {
-                                serde_json::to_string_pretty(&v).unwrap_or_else(|e| {
-                                    Error::from(e).log_error();
-                                    data[0].clone()
-                                })
-                            })
-                            .unwrap_or_else(|e| {
-                                Error::from(e).log_error();
-                                data[0].clone()
-                            });
-                        vec![("".to_string(), prettified)]
-                    } else {
-                        vec![("".to_string(), "".to_string())]
-                    }
-                }
-            },
+            original_data: data_vec.clone(),
+            data: data_vec,
             focused_cell: None,
             original_values: HashMap::new(),
             rows_to_delete: vec![],
@@ -83,6 +89,8 @@ impl EditKey {
             new_field_value: String::new(),
             show_add_form: false,
             i18n,
+            has_unsaved_changes: false,
+            show_unsaved_dialog: false,
         }
     }
 
@@ -90,57 +98,22 @@ impl EditKey {
         &self.key
     }
 
-    fn delete_button(
-        ui: &mut Ui,
-        key: &str,
-        key_type: &KeyType,
-        row: (&String, &String),
-        sender: &Arc<Sender<Message>>,
-    ) -> bool {
-        if ui.small_button("🗑").clicked() {
-            let command = match key_type {
-                KeyType::Hash => {
-                    vec![format!(
-                        "HDEL \"{}\" \"{}\"",
-                        key.replace("\"", "\\\""),
-                        row.0.replace("\"", "\\\"")
-                    )]
-                }
-                KeyType::List => {
-                    vec![format!(
-                        "LREM \"{}\" 1 \"{}\"",
-                        key.replace("\"", "\\\""),
-                        row.1.replace("\"", "\\\"")
-                    )]
-                }
-                KeyType::Set => {
-                    vec![format!(
-                        "SREM \"{}\" \"{}\"",
-                        key.replace("\"", "\\\""),
-                        row.0.replace("\"", "\\\"")
-                    )]
-                }
-                KeyType::SortedSet => {
-                    vec![format!(
-                        "ZREM \"{}\" \"{}\"",
-                        key.replace("\"", "\\\""),
-                        row.0.replace("\"", "\\\"")
-                    )]
-                }
-                KeyType::String | KeyType::Json => {
-                    vec![format!("DEL \"{}\"", key.replace("\"", "\\\""))]
-                }
-                KeyType::Bloom => {
-                    // Bloom filters don't support editing of individual items
-                    panic!("Not implemented");
-                }
-            };
+    pub fn has_unsaved_changes(&self) -> bool {
+        self.has_unsaved_changes
+    }
 
-            sender
-                .send(Message::ExecRespCommand(RespCommand::Command(command)))
-                .unwrap_or_else(|e| {
-                    eprintln!("Error sending message: {e}");
-                });
+    pub fn open_unsaved_changes_dialog(&mut self) {
+        if self.has_unsaved_changes {
+            self.show_unsaved_dialog = true;
+        }
+    }
+
+    fn mark_changed(&mut self) {
+        self.has_unsaved_changes = true;
+    }
+
+    fn delete_button(ui: &mut Ui) -> bool {
+        if ui.small_button("🗑").clicked() {
             true
         } else {
             false
@@ -154,7 +127,7 @@ impl EditKey {
         (read_only, is_focused): (bool, bool),
         cell_id: (usize, usize),
         original_values: &mut HashMap<(usize, usize), String>,
-        (sender, i18n): (&Arc<Sender<Message>>, &I18N),
+        (_sender, _i18n): (&Arc<Sender<Message>>, &I18N),
     ) -> egui::Response {
         let max_rect = ui.max_rect();
         let highlight_rect =
@@ -210,172 +183,42 @@ impl EditKey {
             if response.changed() && matches!(key_type, KeyType::SortedSet) {
                 *row.1 = text_float_filter(row.1)
             }
-
-            if response.lost_focus()
-                && let Some(original_text) = original_values.get(&cell_id)
-            {
-                if *row.1 != *original_text {
-                    let commands = match key_type {
-                        KeyType::Hash => {
-                            vec![format!(
-                                "HSET \"{}\" \"{}\" \"{}\"",
-                                key.replace("\"", "\\\""),
-                                row.0.replace("\"", "\\\""),
-                                row.1.replace("\"", "\\\"")
-                            )]
-                        }
-                        KeyType::List => {
-                            vec![format!(
-                                "LSET \"{}\" {} \"{}\"",
-                                key.replace("\"", "\\\""),
-                                index,
-                                row.1.replace("\"", "\\\"")
-                            )]
-                        }
-                        KeyType::Set => {
-                            vec![
-                                format!(
-                                    "SREM \"{}\" \"{}\"",
-                                    key.replace("\"", "\\\""),
-                                    original_text.replace("\"", "\\\"")
-                                ),
-                                format!(
-                                    "SADD \"{}\" \"{}\"",
-                                    key.replace("\"", "\\\""),
-                                    row.1.replace("\"", "\\\"")
-                                ),
-                            ]
-                        }
-                        KeyType::SortedSet => {
-                            if row.1.parse::<f64>().is_ok() {
-                                vec![
-                                    format!(
-                                        "ZREM \"{}\" \"{}\"",
-                                        key.replace("\"", "\\\""),
-                                        row.0.replace("\"", "\\\"")
-                                    ),
-                                    format!(
-                                        "ZADD \"{}\" {} \"{}\"",
-                                        key.replace("\"", "\\\""),
-                                        row.1,
-                                        row.0.replace("\"", "\\\"")
-                                    ),
-                                ]
-                            } else {
-                                eprintln!("Invalid score for sorted set: {}", row.1);
-                                vec![]
-                            }
-                        }
-                        KeyType::String => {
-                            vec![format!(
-                                "SET \"{}\" \"{}\"",
-                                key.replace("\"", "\\\""),
-                                row.1.replace("\"", "\\\"")
-                            )]
-                        }
-                        KeyType::Json => {
-                            vec![]
-                        }
-                        KeyType::Bloom => {
-                            // Bloom filters don't support editing of individual items
-                            panic!("Not implemented");
-                        }
-                    };
-
-                    if !commands.is_empty() {
-                        sender
-                            .send(Message::ExecRespCommand(RespCommand::Command(commands)))
-                            .unwrap_or_else(|e| {
-                                eprintln!("{}: {e}", i18n.get(LangKey::ErrorSendMsg));
-                            });
-                    }
-                }
-
-                original_values.remove(&cell_id);
-            }
-
             response
         }
     }
-
-    fn input_field(&mut self, ui: &mut Ui, sender: &Arc<Sender<Message>>) {
+    fn input_field(&mut self, ui: &mut Ui, _sender: &Arc<Sender<Message>>) {
         if let Some(&mut (_, ref mut value)) = self.data.first_mut() {
-            let cell_id = (0, 1);
+            let mut changed = false;
 
             egui::ScrollArea::vertical()
                 .id_salt("edit_key_input_field_scroll")
+                .max_height(300.0)
                 .show(ui, |ui| {
-                    let response = if matches!(self.key_type, KeyType::Json) {
+                    let response = if matches!(self.key_type, KeyType::Json | KeyType::String) {
                         code_editor(ui, value).response
                     } else {
-                        let text_edit = egui::TextEdit::multiline(value);
-                        ui.add_sized(ui.available_size(), text_edit)
+                        let text_edit = egui::TextEdit::multiline(value).desired_rows(10);
+                        ui.add(text_edit)
                     };
 
-                    if response.gained_focus() {
-                        self.original_values.insert(cell_id, value.clone());
-                    }
-
-                    if response.lost_focus()
-                        && let Some(original_text) = self.original_values.get(&cell_id)
-                    {
-                        if *value != *original_text {
-                            let maybe_commands = if matches!(self.key_type, KeyType::Json) {
-                                let send_invalid_json_banner = |msg: String| {
-                                    let _ = sender.send(Message::Event(Arc::new(
-                                        Event::ShowBanner(BannerParams {
-                                            header: "Invalid JSON".into(),
-                                            message: msg,
-                                            kind: BannerKind::Error,
-                                            duration_ms: 10_000,
-                                            request: None,
-                                        }),
-                                    )));
-                                };
-                                if value.trim().is_empty() {
-                                    send_invalid_json_banner("JSON value cannot be empty".into());
-                                    None
-                                } else if let Err(e) =
-                                    serde_json::from_str::<serde_json::Value>(value)
-                                {
-                                    send_invalid_json_banner(e.to_string());
-                                    None
-                                } else {
-                                    let escaped_double = value.replace("\"", "\\\"");
-                                    Some(vec![format!(
-                                        "JSON.SET \"{}\" $ \"{}\"",
-                                        self.key.replace("\"", "\\\""),
-                                        escaped_double
-                                    )])
-                                }
-                            } else {
-                                Some(vec![format!(
-                                    "SET \"{}\" \"{}\"",
-                                    self.key.replace("\"", "\\\""),
-                                    value.replace("\"", "\\\"")
-                                )])
-                            };
-
-                            if let Some(commands) = maybe_commands {
-                                sender
-                                    .send(Message::ExecRespCommand(RespCommand::Command(commands)))
-                                    .unwrap_or_else(|e| {
-                                        eprintln!("Error sending message: {e}");
-                                    });
-                            }
-                        }
-
-                        self.original_values.remove(&cell_id);
+                    if response.changed() {
+                        changed = true;
                     }
                 });
+
+            if changed {
+                self.mark_changed();
+            }
         } else {
             ui.label(self.i18n.get(LangKey::NoData));
         };
     }
 
     fn delete_marked_rows(&mut self) {
+        let mut any_deleted = false;
         for &row_index in self.rows_to_delete.iter().rev() {
             self.data.remove(row_index);
+            any_deleted = true;
 
             if let Some((focused_row, focused_col)) = self.focused_cell {
                 if focused_row == row_index {
@@ -404,6 +247,10 @@ impl EditKey {
                 }
             }
             self.original_values = updated_values;
+        }
+
+        if any_deleted {
+            self.mark_changed();
         }
     }
 
@@ -442,7 +289,7 @@ impl EditKey {
                     .add_enabled(add_enabled, egui::Button::new(self.i18n.get(LangKey::Add)))
                     .clicked()
                 {
-                    self.add_new_field(sender);
+                    self.add_new_field();
                 }
             });
         });
@@ -452,7 +299,7 @@ impl EditKey {
         self.key_edit_field(ui);
     }
 
-    fn add_new_field(&mut self, sender: &Arc<Sender<Message>>) {
+    fn add_new_field(&mut self) {
         if self.new_field_name.is_empty()
             && matches!(
                 self.key_type,
@@ -470,89 +317,37 @@ impl EditKey {
             return;
         }
 
-        let commands = match self.key_type {
+        match self.key_type {
             KeyType::Hash => {
-                vec![format!(
-                    "HSET \"{}\" \"{}\" \"{}\"",
-                    self.key.replace("\"", "\\\""),
-                    self.new_field_name.replace("\"", "\\\""),
-                    self.new_field_value.replace("\"", "\\\"")
-                )]
+                self.data
+                    .push((self.new_field_name.clone(), self.new_field_value.clone()));
             }
             KeyType::Set => {
-                vec![format!(
-                    "SADD \"{}\" \"{}\"",
-                    self.key.replace("\"", "\\\""),
-                    self.new_field_name.replace("\"", "\\\"")
-                )]
+                self.data
+                    .push((self.new_field_name.clone(), "".to_string()));
             }
             KeyType::SortedSet => {
-                if let Ok(_score) = self.new_field_value.parse::<f64>() {
-                    vec![format!(
-                        "ZADD \"{}\" {} \"{}\"",
-                        self.key.replace("\"", "\\\""),
-                        self.new_field_value,
-                        self.new_field_name.replace("\"", "\\\"")
-                    )]
-                } else {
+                if self.new_field_value.parse::<f64>().is_err() {
                     eprintln!("Invalid score for sorted set: {}", self.new_field_value);
                     return;
                 }
+                self.data
+                    .push((self.new_field_name.clone(), self.new_field_value.clone()));
             }
             KeyType::List => {
-                vec![format!(
-                    "RPUSH \"{}\" \"{}\"",
-                    self.key.replace("\"", "\\\""),
-                    self.new_field_value.replace("\"", "\\\"")
-                )]
+                let new_index = self.data.len();
+                self.data
+                    .push((new_index.to_string(), self.new_field_value.clone()));
             }
-            KeyType::String => {
+            KeyType::String | KeyType::Json | KeyType::Bloom => {
                 return;
             }
-            KeyType::Json => {
-                return;
-            }
-            KeyType::Bloom => {
-                vec![format!(
-                    "BF.ADD \"{}\" \"{}\"",
-                    self.key.replace("\"", "\\\""),
-                    self.new_field_value.replace("\"", "\\\"")
-                )]
-            }
-        };
-
-        if !commands.is_empty() {
-            sender
-                .send(Message::ExecRespCommand(RespCommand::Command(commands)))
-                .unwrap_or_else(|e| {
-                    eprintln!("Error sending message: {e}");
-                });
-
-            match self.key_type {
-                KeyType::Hash => {
-                    self.data
-                        .push((self.new_field_name.clone(), self.new_field_value.clone()));
-                }
-                KeyType::Set => {
-                    self.data
-                        .push((self.new_field_name.clone(), "".to_string()));
-                }
-                KeyType::SortedSet => {
-                    self.data
-                        .push((self.new_field_name.clone(), self.new_field_value.clone()));
-                }
-                KeyType::List => {
-                    let new_index = self.data.len();
-                    self.data
-                        .push((new_index.to_string(), self.new_field_value.clone()));
-                }
-                _ => {}
-            }
-
-            self.new_field_name.clear();
-            self.new_field_value.clear();
-            self.show_add_form = false;
         }
+
+        self.new_field_name.clear();
+        self.new_field_value.clear();
+        self.show_add_form = false;
+        self.mark_changed();
     }
 
     fn data_table(&mut self, ui: &mut Ui, sender: &Arc<Sender<Message>>) {
@@ -562,6 +357,8 @@ impl EditKey {
         let available_height = ui.available_height();
         let form_height = if self.show_add_form { 100.0 } else { 50.0 };
         let table_height = (available_height - form_height).max(200.0);
+
+        let mut any_row_changed = false;
 
         egui::ScrollArea::vertical()
             .id_salt("edit_key_data_table_scroll")
@@ -648,6 +445,10 @@ impl EditKey {
                                             (sender, &self.i18n),
                                         );
 
+                                        if response.changed() {
+                                            any_row_changed = true;
+                                        }
+
                                         if response.has_focus() {
                                             self.focused_cell = Some((row_index, 1));
                                         } else if self.focused_cell == Some((row_index, 1)) {
@@ -656,13 +457,7 @@ impl EditKey {
                                     });
                                 }
                                 row_ui.col(|ui| {
-                                    if Self::delete_button(
-                                        ui,
-                                        &self.key,
-                                        &self.key_type,
-                                        (&row.0, &row.1),
-                                        sender,
-                                    ) {
+                                    if Self::delete_button(ui) {
                                         self.rows_to_delete.push(row_index);
                                     }
                                 });
@@ -671,24 +466,232 @@ impl EditKey {
                     });
             });
 
+        if any_row_changed {
+            self.mark_changed();
+        }
+
         ui.add_space(10.0);
         ui.separator();
         ui.add_space(5.0);
 
         if !self.show_add_form {
-            ui.horizontal(|ui| {
-                if ui
-                    .button(format!("➕ {}", self.i18n.get(LangKey::AddNew)))
-                    .clicked()
-                {
-                    self.show_add_form = !self.show_add_form;
-                }
-            });
+            let save_label = self.i18n.get(LangKey::Save).to_string();
+            let add_label = format!("➕ {}", self.i18n.get(LangKey::AddNew));
+
+            let mut save_clicked = false;
+            let mut toggle_add_form = false;
+
+            egui::Sides::new().show(
+                ui,
+                |ui| {
+                    if ui.button(add_label).clicked() {
+                        toggle_add_form = true;
+                    }
+                },
+                |ui| {
+                    if ui
+                        .add_enabled(
+                            self.has_unsaved_changes,
+                            egui::Button::new(save_label),
+                        )
+                        .clicked()
+                    {
+                        save_clicked = true;
+                    }
+                },
+            );
+
+            if save_clicked {
+                self.save_changes(sender);
+            }
+
+            if toggle_add_form {
+                self.show_add_form = !self.show_add_form;
+            }
         }
+
 
         if self.show_add_form {
             self.add_new_field_form(ui, sender);
         }
+    }
+
+    fn save_changes(&mut self, sender: &Arc<Sender<Message>>) {
+        if !self.has_unsaved_changes {
+            return;
+        }
+
+        let key_escaped = self.key.replace('"', "\\\"");
+        let mut commands: Vec<String> = Vec::new();
+
+        match self.key_type {
+            KeyType::Hash => {
+                use std::collections::HashMap;
+
+                let mut original: HashMap<&String, &String> = HashMap::new();
+                for (field, value) in &self.original_data {
+                    original.insert(field, value);
+                }
+
+                let mut current: HashMap<&String, &String> = HashMap::new();
+                for (field, value) in &self.data {
+                    current.insert(field, value);
+                }
+
+                let mut removed_fields: Vec<String> = original
+                    .keys()
+                    .filter(|f| !current.contains_key(*f))
+                    .map(|f| f.replace('"', "\\\""))
+                    .collect();
+                if !removed_fields.is_empty() {
+                    let mut cmd = format!("HDEL \"{}\"", key_escaped);
+                    for field in removed_fields.drain(..) {
+                        cmd.push_str(&format!(" \"{}\"", field));
+                    }
+                    commands.push(cmd);
+                }
+
+                let mut set_pairs: Vec<(String, String)> = Vec::new();
+                for (field, value) in &self.data {
+                    match original.get(field) {
+                        Some(orig_v) if *orig_v == value => {}
+                        _ => {
+                            set_pairs
+                                .push((field.replace('"', "\\\""), value.replace('"', "\\\"")));
+                        }
+                    }
+                }
+
+                if !set_pairs.is_empty() {
+                    let mut cmd = format!("HSET \"{}\"", key_escaped);
+                    for (field, value) in set_pairs.drain(..) {
+                        cmd.push_str(&format!(" \"{}\" \"{}\"", field, value));
+                    }
+                    commands.push(cmd);
+                }
+            }
+            KeyType::List => {
+                commands.push(format!("DEL \"{}\"", key_escaped));
+                if !self.data.is_empty() {
+                    let mut cmd = format!("RPUSH \"{}\"", key_escaped);
+                    for (_, value) in &self.data {
+                        cmd.push_str(&format!(" \"{}\"", value.replace('"', "\\\""),));
+                    }
+                    commands.push(cmd);
+                }
+            }
+            KeyType::Set => {
+                let original_set: HashSet<String> =
+                    self.original_data.iter().map(|(m, _)| m.clone()).collect();
+                let current_set: HashSet<String> =
+                    self.data.iter().map(|(m, _)| m.clone()).collect();
+
+                let removed: Vec<String> = original_set.difference(&current_set).cloned().collect();
+                if !removed.is_empty() {
+                    let mut cmd = format!("SREM \"{}\"", key_escaped);
+                    for member in removed {
+                        cmd.push_str(&format!(" \"{}\"", member.replace('"', "\\\""),));
+                    }
+                    commands.push(cmd);
+                }
+
+                let added: Vec<String> = current_set.difference(&original_set).cloned().collect();
+                if !added.is_empty() {
+                    let mut cmd = format!("SADD \"{}\"", key_escaped);
+                    for member in added {
+                        cmd.push_str(&format!(" \"{}\"", member.replace('"', "\\\""),));
+                    }
+                    commands.push(cmd);
+                }
+            }
+            KeyType::SortedSet => {
+                commands.push(format!("DEL \"{}\"", key_escaped));
+                if !self.data.is_empty() {
+                    let mut cmd = format!("ZADD \"{}\"", key_escaped);
+                    for (member, score) in &self.data {
+                        if score.parse::<f64>().is_ok() {
+                            cmd.push_str(&format!(
+                                " {} \"{}\"",
+                                score,
+                                member.replace('"', "\\\""),
+                            ));
+                        } else {
+                            eprintln!("Invalid score for sorted set: {}", score);
+                        }
+                    }
+                    commands.push(cmd);
+                }
+            }
+            KeyType::String => {
+                if let Some((_, value)) = self.data.first() {
+                    let original_value = self
+                        .original_data
+                        .first()
+                        .map(|(_, v)| v)
+                        .cloned()
+                        .unwrap_or_default();
+
+                    if &original_value != value {
+                        commands.push(format!(
+                            "SET \"{}\" \"{}\"",
+                            key_escaped,
+                            value.replace('"', "\\\""),
+                        ));
+                    }
+                }
+            }
+            KeyType::Json => {
+                if let Some((_, value)) = self.data.first() {
+                    let trimmed = value.trim();
+                    if trimmed.is_empty() {
+                        let _ = sender.send(Message::Event(Arc::new(Event::ShowBanner(
+                            BannerParams {
+                                header: "Invalid JSON".into(),
+                                message: "JSON value cannot be empty".into(),
+                                kind: BannerKind::Error,
+                                duration_ms: 10_000,
+                                request: None,
+                            },
+                        ))));
+                        return;
+                    }
+
+                    if let Err(e) = serde_json::from_str::<serde_json::Value>(value) {
+                        let _ = sender.send(Message::Event(Arc::new(Event::ShowBanner(
+                            BannerParams {
+                                header: "Invalid JSON".into(),
+                                message: e.to_string(),
+                                kind: BannerKind::Error,
+                                duration_ms: 10_000,
+                                request: None,
+                            },
+                        ))));
+                        return;
+                    }
+
+                    let escaped_double = value.replace('"', "\\\"");
+                    commands.push(format!(
+                        "JSON.SET \"{}\" $ \"{}\"",
+                        key_escaped, escaped_double,
+                    ));
+                }
+            }
+            KeyType::Bloom => {
+                // Bloom filters are currently read-only in this editor.
+            }
+        }
+
+        if !commands.is_empty() {
+            sender
+                .send(Message::ExecRespCommand(RespCommand::Command(commands)))
+                .unwrap_or_else(|e| {
+                    eprintln!("Error sending message: {e}");
+                });
+        }
+
+        self.original_data = self.data.clone();
+        self.has_unsaved_changes = false;
+        self.original_values.clear();
     }
 
     fn bloom_filter(&self, ui: &mut Ui, sender: &Arc<Sender<Message>>) {
@@ -929,15 +932,107 @@ impl PopupUi for EditKey {
                 ui.add_space(5.0);
 
                 if ui.input(|i| i.modifiers.ctrl && i.key_pressed(Key::W)) {
-                    *open = false;
+                    if self.has_unsaved_changes {
+                        self.show_unsaved_dialog = true;
+                    } else {
+                        *open = false;
+                    }
                 }
 
                 if matches!(self.key_type, KeyType::String | KeyType::Json) {
                     self.input_field(ui, sender);
+
+                    ui.add_space(10.0);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                        let save_label = self.i18n.get(LangKey::Save);
+                        if ui
+                            .add_enabled(self.has_unsaved_changes, egui::Button::new(save_label))
+                            .clicked()
+                        {
+                            self.save_changes(sender);
+                        }
+                    });
                 } else if matches!(self.key_type, KeyType::Bloom) {
                     self.bloom_filter(ui, sender);
                 } else {
                     self.data_table(ui, sender);
+                }
+
+                if self.show_unsaved_dialog {
+                    egui::Modal::new(egui::Id::new("edit_key_unsaved_changes")).show(
+                        ui.ctx(),
+                        |ui| {
+                            ui.set_width(280.0);
+
+                            ui.horizontal(|ui| {
+                                ui.with_layout(
+                                    egui::Layout::left_to_right(egui::Align::Center),
+                                    |ui| {
+                                        ui.centered_and_justified(|ui| {
+                                            ui.add(
+                                                egui::Label::new(
+                                                    egui::RichText::new(format!(
+                                                        "{} {}?",
+                                                        self.i18n.get(LangKey::EditKey),
+                                                        self.key_name(),
+                                                    ))
+                                                    .heading(),
+                                                )
+                                                .truncate(),
+                                            );
+                                        });
+                                    },
+                                );
+                            });
+
+                            ui.add_space(8.0);
+
+                            ui.horizontal(|ui| {
+                                ui.with_layout(
+                                    egui::Layout::left_to_right(egui::Align::Center),
+                                    |ui| {
+                                        ui.centered_and_justified(|ui| {
+                                            ui.label(
+                                                "You have unsaved changes. What would you like to do?",
+                                            );
+                                        });
+                                    },
+                                );
+                            });
+
+                            ui.add_space(8.0);
+
+                            ui.horizontal(|ui| {
+                                if ui.button(self.i18n.get(LangKey::Cancel)).clicked() {
+                                    self.show_unsaved_dialog = false;
+                                }
+
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        if ui
+                                            .add_enabled(
+                                                self.has_unsaved_changes,
+                                                egui::Button::new(
+                                                    self.i18n.get(LangKey::Save),
+                                                ),
+                                            )
+                                            .clicked()
+                                        {
+                                            self.save_changes(sender);
+                                            self.show_unsaved_dialog = false;
+                                            *open = false;
+                                        }
+
+                                        if ui.button("Don't save").clicked() {
+                                            self.show_unsaved_dialog = false;
+                                            *open = false;
+                                        }
+                                    },
+                                );
+                            });
+                        },
+                    );
                 }
             });
         });

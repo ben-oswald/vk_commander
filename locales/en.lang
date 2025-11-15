@@ -44,6 +44,8 @@ TEST_CONNECTION=Test connection
 UNDEFINED=Undefined
 UNSUPPORTED_SERVER=Unsupported server
 UNSUPPORTED_VALKEY_SERVER_ERROR=Trying to connect to an unsupported Valkey server. Only Valkey servers with version {expected_version_major}.{expected_version_minor} or higher and {expected_protocols} are supported UNSUPPORTED_SERVER=Unsupported server.
+VALKEY_VERSION_WARNING_TITLE=Valkey version warning
+VALKEY_SERVER_BELOW_RECOMMENDED_VERSION=The current Valkey server version is below the recommended version for vkCommander. Various problems may occur; only Valkey servers with version {expected_version_major}.{expected_version_minor} or higher and {expected_protocols} are fully supported.
 USERNAME=Username
 VALKEY_DATABASE=Valkey database
 VERSION=Version
