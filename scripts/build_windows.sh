@@ -28,20 +28,15 @@ if command -v makensis >/dev/null 2>&1; then
     exit 1
   fi
 
-  sed -e "s/!define APP_VERSION \".*\"/!define APP_VERSION \"${VERSION}\"/" \
-      -e "s|!insertmacro MUI_PAGE_LICENSE \"../../license.txt\"|!insertmacro MUI_PAGE_LICENSE \"license.txt\"|" \
-      -e "s|File \"../target/x86_64-pc-windows-gnu/release/\${APP_EXECUTABLE}\"|File \"target/x86_64-pc-windows-gnu/release/vk_commander.exe\"|" \
-      -e "s|OutFile \"../releases/windows/\${APP_NAME}Installer.exe\"|OutFile \"releases/windows/vkCommanderInstaller.exe\"|" \
-      scripts/windows_installer.nsi > temp_installer.nsi
-
-  makensis temp_installer.nsi
+  makensis -DAPP_VERSION="${VERSION}" scripts/windows_installer.nsi
 
   if [ -f "releases/windows/vkCommanderInstaller.exe" ]; then
     mv "releases/windows/vkCommanderInstaller.exe" "$INSTALLER_FILE"
     echo "Successfully built: $INSTALLER_FILE"
+  else
+    echo "Error: Expected installer 'releases/windows/vkCommanderInstaller.exe' was not created"
+    exit 1
   fi
-
-  rm -f temp_installer.nsi
 else
   echo "NSIS not found, skipping installer creation"
   echo "To build Windows installer, install NSIS and ensure 'makensis' is in your PATH"

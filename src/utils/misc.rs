@@ -23,11 +23,12 @@ impl PathProvider {
         }
 
         if cfg!(target_os = "windows") {
-            let path = PathBuf::from(std::env::var("APP_DATA")?);
+            let base = PathBuf::from(std::env::var("APPDATA")?);
+            let path = base.join(APP_NAME);
             if !path.exists() {
                 std::fs::create_dir_all(&path)?;
             }
-            Ok(path.join(APP_NAME))
+            Ok(path)
         } else {
             let path = PathBuf::from(std::env::var_os("XDG_CONFIG_HOME").unwrap_or_else(|| {
                 let home = std::env::var_os("HOME").unwrap_or_default();

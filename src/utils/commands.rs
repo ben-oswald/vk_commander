@@ -1,14 +1,22 @@
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::fs;
+use std::{env, fs};
 use std::path::{Path, PathBuf};
 
 pub fn get_commands_dir() -> PathBuf {
     if Path::new("/.flatpak-info").exists() {
         PathBuf::from("/app/share/vk_commander/commands")
-    } else if !cfg!(debug_assertions) {
+    } else if cfg!(target_os = "windows") {
+        let exe_path: PathBuf = env::current_exe().unwrap_or(PathBuf::from("C:\\Program Files\\vkCommander\\vk_commander.exe"));
+        if let Some(exe_dir) = exe_path.parent() {
+            let mut path = exe_dir.to_path_buf();
+            path.push("commands");
+            return path;
+        }
+        PathBuf::from("commands")
+    }else if !cfg!(debug_assertions) {
         PathBuf::from("/usr/share/vk_commander/commands/")
-    } else {
+    }  else {
         PathBuf::from("commands")
     }
 }

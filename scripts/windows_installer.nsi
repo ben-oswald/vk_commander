@@ -8,9 +8,9 @@
 !define APP_DISPLAY_NAME "vkCommander"
 !define APP_EXECUTABLE "vk_commander.exe"
 !define APP_PUBLISHER "Benjamin Oswald"
-!define APP_VERSION "0.0.0"
 
 Name "${APP_DISPLAY_NAME}"
+BrandingText "vkCommander - oswald.dev"
 OutFile "../releases/windows/${APP_NAME}Installer.exe"
 InstallDir "$PROGRAMFILES64\${APP_DISPLAY_NAME}"
 InstallDirRegKey HKLM "Software\${APP_NAME}" "InstallPath"
@@ -30,8 +30,8 @@ Var CheckboxStartMenu
 Var HasAdminRights
 
 !define MUI_ABORTWARNING
-!define MUI_ICON "build_resources/app_icon/vk_commander.ico"
-!define MUI_UNICON "build_resources/app_icon/vk_commander.ico"
+!define MUI_ICON "../build_resources/app_icon/vk_commander.ico"
+!define MUI_UNICON "../build_resources/app_icon/vk_commander.ico"
 
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT "HKLM"
 !define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\${APP_NAME}"
@@ -39,7 +39,7 @@ Var HasAdminRights
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "../../license.txt"
+!insertmacro MUI_PAGE_LICENSE "../license.txt"
 Page custom InstallScopePage InstallScopePageLeave
 Page custom ShortcutsPage ShortcutsPageLeave
 !insertmacro MUI_PAGE_DIRECTORY
@@ -190,6 +190,7 @@ Section "Main Application" SecMain
 
     ; App files
     File "../target/x86_64-pc-windows-gnu/release/${APP_EXECUTABLE}"
+    File /r "../commands"
 
     ; Registration
     ${If} $InstallForAllUsers == "1"
@@ -251,12 +252,13 @@ Section "Uninstall"
         DeleteRegKey HKCU "Software\${APP_NAME}"
     ${EndIf}
 
-    ; Remove files and uninstaller
+    ; Remove files, folders and uninstaller
     Delete "$INSTDIR\${APP_EXECUTABLE}"
     Delete "$INSTDIR\Uninstall.exe"
+    RMDir /r "$INSTDIR\commands"
 
     ; Remove directories
-    RMDir "$INSTDIR"
+    RMDir /r "$INSTDIR"
 
     ; Remove shortcuts (context is already set in un.onInit)
     Delete "$DESKTOP\${APP_DISPLAY_NAME}.lnk"
