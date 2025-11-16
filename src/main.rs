@@ -7,6 +7,7 @@ use eframe::egui;
 use vk_commander::state::{AppState, Info};
 
 use eframe::HardwareAcceleration;
+use egui::IconData;
 use std::sync::Arc;
 use vk_commander::errors::Error;
 use vk_commander::state::{Event, Message};
@@ -192,20 +193,25 @@ impl eframe::App for App {
                             "https://github.com/ben-oswald/vk_commander",
                         );
                     });
-                    
+
                     ui.separator();
 
                     ui.horizontal(|ui| {
                         ui.label("This software uses parts of Valkey, licenses under");
 
-                        if ui.add(egui::Button::new("BSD 3-Clause").frame(false)).clicked() {
-                            sender.send(Message::Event(Arc::from(Event::ShowInfo(Info{
-                                title: "BSD 3-Clause License".into(),
-                                message: include_str!("../valkey_license.txt").into(),
-                                callback: Some(|| {}),
-                            })))).unwrap_or_else(|e| {
-                                Error::from(e).show_error_dialog(sender.clone())
-                            });
+                        if ui
+                            .add(egui::Button::new("BSD 3-Clause").frame(false))
+                            .clicked()
+                        {
+                            sender
+                                .send(Message::Event(Arc::from(Event::ShowInfo(Info {
+                                    title: "BSD 3-Clause License".into(),
+                                    message: include_str!("../valkey_license.txt").into(),
+                                    callback: Some(|| {}),
+                                }))))
+                                .unwrap_or_else(|e| {
+                                    Error::from(e).show_error_dialog(sender.clone())
+                                });
                         };
                     });
 
@@ -238,19 +244,43 @@ impl eframe::App for App {
     }
 }
 
+fn load_icon() -> Option<IconData> {
+    let icon_bytes = include_bytes!("../build_resources/app_icon/vk_commander.png");
+    let image = image::load_from_memory(icon_bytes).ok()?;
+    let image = image.to_rgba8();
+    let (width, height) = image.dimensions();
+    let rgba = image.into_raw();
+
+    Some(IconData {
+        rgba,
+        width,
+        height,
+    })
+}
+
 fn main() {
-    let viewport = ViewportBuilder::default()
+    let mut viewport = ViewportBuilder::default()
         .with_min_inner_size(vec2(800.0, 600.0))
         .with_inner_size(vec2(1366.0, 768.0));
 
+    if let Some(icon) = load_icon() {
+        viewport = viewport.with_icon(icon);
+    }
+
+    #[cfg(target_os = "windows")]
+    let renderer = eframe::Renderer::Wgpu;
+
+    #[cfg(not(target_os = "windows"))]
+    let renderer = eframe::Renderer::Glow;
+
     let native_options = eframe::NativeOptions {
         viewport,
+        renderer,
         vsync: true,
         multisampling: 0,
         depth_buffer: 0,
         stencil_buffer: 0,
         hardware_acceleration: HardwareAcceleration::Preferred,
-        renderer: Default::default(),
         run_and_return: false,
         event_loop_builder: None,
         window_builder: None,
@@ -259,6 +289,7 @@ fn main() {
         persist_window: false,
         persistence_path: None,
         dithering: false,
+        ..Default::default()
     };
 
     eframe::run_native(

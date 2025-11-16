@@ -7,6 +7,7 @@ authors = ["Benjamin Oswald"]
 license = "AGPL-3.0"
 repository = "https://github.com/ben-oswald/vk_commander"
 homepage = "https://oswald.dev"
+build = "build.rs"
 
 [dependencies]
 egui = "0.33.0"
@@ -14,13 +15,19 @@ egui_code_editor = { version = "0.2.20", features = ["serde"] }
 egui_extras = "0.33.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
+image = { version = "0.25.9", default-features = false, features = ["png"] }
 vk_macros = { path = "packages/vk_macros" }
+
 
 [target.'cfg(target_os = "linux")'.dependencies]
 eframe = { version = "0.33.0", features = ["default_fonts", "glow", "wayland"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-eframe = { version = "0.33.0", features = ["default_fonts", "glow"] }
+eframe = { version = "0.33", features = ["default_fonts", "wgpu"] }
+wgpu = { version = "27.0.1", features = ["dx12", "vulkan", "gles"] }
+
+[build-dependencies]
+embed-resource = "3.0.6"
 
 [profile.release]
 strip = true
