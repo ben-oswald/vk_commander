@@ -349,6 +349,7 @@ impl ConnectionsWindow {
                 Arc::from(url.clone()),
                 sender.clone(),
                 i18n,
+                true,
             ) {
                 Ok(vc) => {
                     if let Some(alias_str) = &alias {

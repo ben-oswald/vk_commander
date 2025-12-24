@@ -93,20 +93,20 @@ impl WorkerThread {
         self.task_sender.send(task)
     }
 
-    fn try_recv_result(&self) -> Option<WorkerResult> {
-        if let Ok(receiver) = self.result_receiver.try_lock() {
-            receiver.try_recv().ok()
-        } else {
-            None
+    fn try_recv_result(&self) -> Result<Option<WorkerResult>, Error> {
+        match self.result_receiver.try_lock() {
+            Ok(receiver) => Ok(receiver.try_recv().ok()),
+            Err(std::sync::TryLockError::WouldBlock) => Ok(None),
+            Err(std::sync::TryLockError::Poisoned(e)) => Err(Error::from(e)),
         }
     }
 
-    fn get_all_results(&self) -> Vec<WorkerResult> {
+    fn get_all_results(&self) -> Result<Vec<WorkerResult>, Error> {
         let mut results = Vec::new();
-        while let Some(result) = self.try_recv_result() {
+        while let Some(result) = self.try_recv_result()? {
             results.push(result);
         }
-        results
+        Ok(results)
     }
 
     fn process_task(task: WorkerTask) -> WorkerResult {
@@ -330,7 +330,7 @@ impl Component for BrowserWindow {
         }
 
         if let Some(worker) = &self.worker {
-            let results = worker.get_all_results();
+            let results = worker.get_all_results()?;
             for result in results {
                 self.handle_worker_result(result);
             }

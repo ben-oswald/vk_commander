@@ -40,6 +40,7 @@ pub enum MainWindow {
     Workbench,
     Insights,
     Documentation,
+    Import,
 }
 
 pub struct Info {

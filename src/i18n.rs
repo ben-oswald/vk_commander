@@ -84,6 +84,7 @@ pub enum LangKey {
     Workbench,
     Insights,
     Documentation,
+    Import,
     Host,
     ConnectingToServer,
     ConnectingToServerTakesAWhile,
@@ -394,6 +395,7 @@ impl I18N {
             LangKey::Add => self.get_lang("ADD"),
             LangKey::LoadingKeyData => self.get_lang("LOADING_KEY_DATA"),
             LangKey::CommandHistory => self.get_lang("COMMAND_HISTORY"),
+            LangKey::Import => self.get_lang("IMPORT"),
         }
     }
 

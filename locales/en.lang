@@ -53,6 +53,7 @@ WINDOW=Window
 WORKBENCH=Workbench
 INSIGHTS=Insights
 DOCUMENTATION=Documentation
+IMPORT=Import
 YOUR_SERVER=Your Server
 SETTINGS=Settings
 APPLY=Apply

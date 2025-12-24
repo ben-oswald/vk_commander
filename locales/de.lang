@@ -53,6 +53,7 @@ WINDOW=Fenster
 WORKBENCH=Arbeitsbereich
 INSIGHTS=Einblicke
 DOCUMENTATION=Dokumentation
+IMPORT=Import
 YOUR_SERVER=Dein Server
 SETTINGS=Einstellungen
 APPLY=Übernehmen

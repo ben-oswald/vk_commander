@@ -171,8 +171,9 @@ impl AppState {
                                     let mut maybe_error_msg: Option<String> = None;
                                     let mut responses: Vec<String> = Vec::new();
                                     let result = if cmds.len() == 1 {
-                                        // Safely unwrap: cmds.len() == 1, so first() is guaranteed to return Some
-                                        client.exec(cmds.first().unwrap())
+                                        cmds.first()
+                                            .map(|c| client.exec(c))
+                                            .unwrap_or(Err(Error::Any("No command to execute".into())))
                                     } else {
                                         client.exec_pipelined(cmds)
                                     };
@@ -291,6 +292,7 @@ impl AppState {
                 self.i18n.clone(),
             )),
             MainWindow::Documentation => Box::from(components::DocumentationWindow::default()),
+            MainWindow::Import => Box::from(components::ImportWindow::default()),
         }
     }
 

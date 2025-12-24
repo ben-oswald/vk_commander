@@ -4,7 +4,7 @@ use std::env::VarError;
 use std::fmt::Debug;
 use std::num::ParseIntError;
 use std::sync::mpsc::{SendError, Sender};
-use std::sync::{Arc, PoisonError, RwLockReadGuard, RwLockWriteGuard, TryLockError};
+use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockError};
 
 #[derive(Debug)]
 pub enum Error {
@@ -15,6 +15,7 @@ pub enum Error {
     Critical(String),
     Any(String),
     InvalidInput(String),
+    Lock(String),
 }
 
 impl AsRef<Error> for Error {
@@ -79,37 +80,37 @@ impl From<ParseIntError> for Error {
 
 impl<T> From<PoisonError<T>> for Error {
     fn from(value: PoisonError<T>) -> Self {
-        Self::Any(value.to_string())
+        Self::Lock(value.to_string())
     }
 }
 
 impl<T> From<PoisonError<T>> for Box<Error> {
     fn from(value: PoisonError<T>) -> Self {
-        Box::new(Error::Any(value.to_string()))
+        Box::new(Error::Lock(value.to_string()))
     }
 }
 
 impl<T> From<TryLockError<RwLockReadGuard<'_, T>>> for Error {
     fn from(value: TryLockError<RwLockReadGuard<'_, T>>) -> Self {
-        Self::Any(value.to_string())
+        Self::Lock(value.to_string())
     }
 }
 
 impl<T> From<TryLockError<RwLockReadGuard<'_, T>>> for Box<Error> {
     fn from(value: TryLockError<RwLockReadGuard<'_, T>>) -> Self {
-        Box::new(Error::Any(value.to_string()))
+        Box::new(Error::Lock(value.to_string()))
     }
 }
 
 impl<T> From<TryLockError<RwLockWriteGuard<'_, T>>> for Error {
     fn from(value: TryLockError<RwLockWriteGuard<'_, T>>) -> Self {
-        Self::Any(value.to_string())
+        Self::Lock(value.to_string())
     }
 }
 
 impl<T> From<TryLockError<RwLockWriteGuard<'_, T>>> for Box<Error> {
     fn from(value: TryLockError<RwLockWriteGuard<'_, T>>) -> Self {
-        Box::new(Error::Any(value.to_string()))
+        Box::new(Error::Lock(value.to_string()))
     }
 }
 
@@ -135,6 +136,7 @@ impl Error {
             Error::Internal(_) => "Internal Error".into(),
             Error::SystemTime(_) => "System Time Error".into(),
             Error::InvalidInput(_) => "Invalid input".into(),
+            Error::Lock(_) => "Lock Error".into(),
         }
     }
 }
@@ -155,6 +157,7 @@ impl std::fmt::Display for Error {
             Error::InvalidInput(e) => {
                 write!(f, "{e}")
             }
+            Error::Lock(e) => write!(f, "{e}"),
         }
     }
 }
@@ -169,6 +172,7 @@ impl std::error::Error for Error {
             Error::Network(_) => None,
             Error::Critical(_) => None,
             Error::InvalidInput(_) => None,
+            Error::Lock(_) => None,
         }
     }
 }
@@ -183,6 +187,14 @@ impl Error {
                 Error::from(e).log_error();
             });
     }
+
+    pub fn show_error_dialog_and_reset(self, sender: Arc<Sender<Message>>, lock: Arc<RwLock<bool>>) {
+        self.show_error_dialog(sender);
+        if let Ok(mut guard) = lock.write() {
+            *guard = false;
+        }
+    }
+
     pub fn log_error(self) {
         eprintln!("An error occurred: {}", self);
     }

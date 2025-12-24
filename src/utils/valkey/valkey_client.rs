@@ -38,6 +38,7 @@ impl ValkeyClient {
         url: Arc<String>,
         sender: Arc<Sender<Message>>,
         i18n: Arc<I18N>,
+        navigate_to_connection: bool,
     ) -> Result<Self, Error> {
         sender.send(Message::Event(Arc::from(Event::ShowInfo(Info {
             title: i18n.get(LangKey::ConnectingToServer),
@@ -202,9 +203,11 @@ impl ValkeyClient {
             }
         }
 
-        sender.send(Message::Event(Arc::from(Event::SetMainWindow(
-            MainWindow::Connection,
-        ))))?;
+        if navigate_to_connection {
+            sender.send(Message::Event(Arc::from(Event::SetMainWindow(
+                MainWindow::Connection,
+            ))))?;
+        }
         if !unsupported {
             sender.send(Message::Event(Arc::from(Event::CloseInfo())))?
         };
@@ -269,8 +272,15 @@ impl ValkeyClient {
     }
 
     pub fn exec_pipelined(&self, commands: &Vec<String>) -> Result<Vec<String>, Error> {
+        let (responses, _) = self.exec_pipelined_with_status(commands)?;
+        Ok(responses)
+    }
+
+    pub fn exec_pipelined_with_status(
+        &self,
+        commands: &Vec<String>,
+    ) -> Result<(Vec<String>, Vec<String>), Error> {
         let mut resp_string = String::new();
-        let mut pipeline_resp_string = String::new();
         for command in commands {
             let individual_commands = Self::split_commands(command.trim());
             resp_string.push_str(format!("*{}\r\n", individual_commands.len()).as_str());
@@ -281,10 +291,7 @@ impl ValkeyClient {
             }
         }
         let res = self.exec_raw_pipelined(&resp_string, commands.len())?;
-        pipeline_resp_string.push_str(res.as_str());
-        let valkey_value = ValkeyValue::parse_all_values(pipeline_resp_string.as_str());
-        let valkey_value: Vec<String> = valkey_value.iter().map(|v| v.to_string()).collect();
-        Ok(valkey_value)
+        Ok(Self::parse_pipelined_response(res.as_str()))
     }
 
     fn exec_raw(&self, command: &str) -> Result<String, Error> {
@@ -576,6 +583,21 @@ impl ValkeyClient {
         (*self.server_type).clone()
     }
 
+    fn parse_pipelined_response(res: &str) -> (Vec<String>, Vec<String>) {
+        let values = ValkeyValue::parse_all_values(res);
+        let mut responses = Vec::with_capacity(values.len());
+        let mut errors = Vec::new();
+
+        for value in values {
+            if matches!(value, ValkeyValue::SimpleError(_) | ValkeyValue::BulkErrors(_)) {
+                errors.push(value.to_string());
+            }
+            responses.push(value.to_string());
+        }
+
+        (responses, errors)
+    }
+
     fn split_commands(input: &str) -> Vec<String> {
         let mut result = Vec::new();
         let mut current_token = String::new();
@@ -625,5 +647,19 @@ impl ValkeyClient {
         }
 
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_pipelined_response_flags_errors() {
+        let raw = "+OK\r\n-ERR invalid command\r\n:1\r\n";
+        let (responses, errors) = ValkeyClient::parse_pipelined_response(raw);
+
+        assert_eq!(responses, vec!["OK", "ERR invalid command", "1"]);
+        assert_eq!(errors, vec!["ERR invalid command"]);
     }
 }

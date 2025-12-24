@@ -30,28 +30,22 @@ impl ConfirmDialog {
 
 impl Dialog for ConfirmDialog {
     fn show(&self, ctx: &Context, i18n: Arc<I18N>) -> Result<(), Error> {
+        let mut show_dialog = self.show_dialog.write()?;
         egui::Window::new(&self.title)
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| {
                 ui.label(&self.message);
-                match self.show_dialog.try_write() {
-                    Ok(mut show_dialog) => {
-                        if ui.button(i18n.get(LangKey::Ok)).clicked() {
-                            (self.on_confirm)();
-                            *show_dialog = false;
-                        }
-                        if ui.button(i18n.get(LangKey::Cancel)).clicked() {
-                            if let Some(on_cancel) = &self.on_cancel {
-                                on_cancel()
-                            }
-                            *show_dialog = false;
-                        }
+                if ui.button(i18n.get(LangKey::Ok)).clicked() {
+                    (self.on_confirm)();
+                    *show_dialog = false;
+                }
+                if ui.button(i18n.get(LangKey::Cancel)).clicked() {
+                    if let Some(on_cancel) = &self.on_cancel {
+                        on_cancel()
                     }
-                    Err(e) => {
-                        eprintln!("Error trying to change show dialog state: {:?}", e);
-                    }
-                };
+                    *show_dialog = false;
+                }
             });
         Ok(())
     }

@@ -34,6 +34,7 @@ impl Component for LeftSideBar {
                         ("⚒", LangKey::Workbench, MainWindow::Workbench),
                         ("📊", LangKey::Insights, MainWindow::Insights),
                         ("📖", LangKey::Documentation, MainWindow::Documentation),
+                        ("💾", LangKey::Import, MainWindow::Import),
                     ] {
                         let sel = matches!(current_window, Some(ref v) if std::mem::discriminant(v) == std::mem::discriminant(&target));
                         self.sidebar_nav_button(ui, state, icon, state.i18n().get(key), sel, target);

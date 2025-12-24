@@ -272,19 +272,18 @@ impl DocumentationWindow {
         }
     }
 
-    fn open_command_in_workbench(state: &mut AppState, command_name: &str) {
+    fn open_command_in_workbench(state: &mut AppState, command_name: &str) -> Result<(), Error> {
         state.workbench_state.resp_command = format!("{} ", command_name);
         state.workbench_state.set_cursor_pos = Some(state.workbench_state.resp_command.len());
 
-        if let Ok(mut current_window) = state.ui_panels.current_window.write() {
-            *current_window = Some(MainWindow::Workbench);
-        }
+        *state.ui_panels.current_window.write()? = Some(MainWindow::Workbench);
 
         let _ = state
             .get_sender()
             .send(Message::Event(Arc::from(SetMainWindow(
                 MainWindow::Workbench,
             ))));
+        Ok(())
     }
 
     fn command_entry(
@@ -302,7 +301,9 @@ impl DocumentationWindow {
         }
 
         if response.double_clicked() {
-            Self::open_command_in_workbench(state, command_full_name);
+            if let Err(e) = Self::open_command_in_workbench(state, command_full_name) {
+                e.show_error_dialog(state.get_sender());
+            }
         }
     }
 

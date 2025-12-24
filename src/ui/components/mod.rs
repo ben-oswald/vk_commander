@@ -6,6 +6,7 @@ mod left_side_bar;
 mod menu_bar;
 mod ui_panels;
 mod workbench_window;
+mod import_window;
 
 use crate::ui::Component;
 use crate::ui::widgets::Popup;
@@ -17,6 +18,7 @@ pub use left_side_bar::LeftSideBar;
 pub use menu_bar::MenuBar;
 pub use ui_panels::UIPanels;
 pub use workbench_window::WorkbenchWindow;
+pub use import_window::ImportWindow;
 
 pub struct UIComponents {
     pub popup_window: Popup,

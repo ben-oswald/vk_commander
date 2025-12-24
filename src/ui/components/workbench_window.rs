@@ -74,9 +74,16 @@ impl Component for WorkbenchWindow {
     fn show(&mut self, ctx: &Context, state: &mut AppState) -> Result<(), Error> {
         let sender = state.get_sender();
         if let Some(valkey_client) = state.valkey_client.clone() {
+            let is_executing_arc = self.is_executing.clone();
+            let is_executing = *is_executing_arc.read()?;
+            let resp_data_arc = self.resp_data.clone();
+            let resp_data = resp_data_arc.read()?;
+            let resp_result_arc = self.resp_result.clone();
+            let result_text = resp_result_arc.read()?.clone();
+
             egui::CentralPanel::default().show(ctx, |ui| {
                 let button_height = 24.0;
-                let is_executing = self.is_executing.read().is_ok_and(|guard| *guard);
+                self.result_display = result_text.clone();
 
                 let suggestions = state
                     .command_registry
@@ -296,79 +303,82 @@ impl Component for WorkbenchWindow {
                     let is_executing_clone = self.is_executing.clone();
                     let ctx_clone = ctx.clone();
 
-                    if let Ok(mut guard) = is_executing_clone.write() {
-                        *guard = true;
+                    match is_executing_clone.write() {
+                        Ok(mut guard) => *guard = true,
+                        Err(e) => Error::from(e).show_error_dialog(sender.clone()),
                     }
-                    if let Ok(mut guard) = res_result.write() {
-                        *guard = state.i18n().get(LangKey::Executing);
+                    match res_result.write() {
+                        Ok(mut guard) => *guard = state.i18n().get(LangKey::Executing),
+                        Err(e) => Error::from(e).show_error_dialog(sender.clone()),
                     }
                     ctx.request_repaint();
 
                     let i18n = state.i18n();
                     thread::spawn(move || {
-                        let commands: Vec<&str> = command
-                            .lines()
-                            .map(|line| line.trim())
-                            .filter(|line| !line.is_empty() && !line.starts_with('#'))
-                            .collect();
+                        let run = || -> Result<(), Error> {
+                            let commands: Vec<&str> = command
+                                .lines()
+                                .map(|line| line.trim())
+                                .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                                .collect();
 
-                        let mut all_results = Vec::new();
-                        let mut all_responses = Vec::new();
+                            let mut all_results = Vec::new();
+                            let mut all_responses = Vec::new();
 
-                        for (idx, cmd) in commands.iter().enumerate() {
-                            let result = match valkey_client.exec(cmd) {
-                                Ok(response) => {
-                                    all_responses.extend(response.clone());
+                            for (idx, cmd) in commands.iter().enumerate() {
+                                let result = match valkey_client.exec(cmd) {
+                                    Ok(response) => {
+                                        all_responses.extend(response.clone());
 
-                                    if response.is_empty() {
+                                        if response.is_empty() {
+                                            format!(
+                                                "{}. {}: {}",
+                                                idx + 1,
+                                                cmd,
+                                                i18n.get(LangKey::NoResponse)
+                                            )
+                                        } else if response.len() == 1 {
+                                            format!("{}. {}: {}", idx + 1, cmd, response[0])
+                                        } else {
+                                            let items = response
+                                                .iter()
+                                                .enumerate()
+                                                .map(|(i, item)| format!("   {}) \"{}\"", i + 1, item))
+                                                .collect::<Vec<String>>()
+                                                .join("\n");
+                                            format!("{}. {}:\n{}", idx + 1, cmd, items)
+                                        }
+                                    }
+                                    Err(e) => {
+                                        e.show_error_dialog(sender.clone());
                                         format!(
                                             "{}. {}: {}",
                                             idx + 1,
                                             cmd,
-                                            i18n.get(LangKey::NoResponse)
+                                            i18n.get(LangKey::AnErrorOccurred)
                                         )
-                                    } else if response.len() == 1 {
-                                        format!("{}. {}: {}", idx + 1, cmd, response[0])
-                                    } else {
-                                        let items = response
-                                            .iter()
-                                            .enumerate()
-                                            .map(|(i, item)| format!("   {}) \"{}\"", i + 1, item))
-                                            .collect::<Vec<String>>()
-                                            .join("\n");
-                                        format!("{}. {}:\n{}", idx + 1, cmd, items)
                                     }
-                                }
-                                Err(e) => {
-                                    e.show_error_dialog(sender.clone());
-                                    format!(
-                                        "{}. {}: {}",
-                                        idx + 1,
-                                        cmd,
-                                        i18n.get(LangKey::AnErrorOccurred)
-                                    )
-                                }
+                                };
+                                all_results.push(result);
+                            }
+
+                            *res_data.write()? = all_responses;
+
+                            let final_result = if all_results.is_empty() {
+                                i18n.get(LangKey::NoResponse)
+                            } else {
+                                all_results.join("\n")
                             };
-                            all_results.push(result);
-                        }
 
-                        if let Ok(mut guard) = res_data.write() {
-                            *guard = all_responses;
-                        }
-
-                        let final_result = if all_results.is_empty() {
-                            i18n.get(LangKey::NoResponse)
-                        } else {
-                            all_results.join("\n")
+                            *res_result.write()? = final_result;
+                            *is_executing_clone.write()? = false;
+                            ctx_clone.request_repaint();
+                            Ok(())
                         };
 
-                        if let Ok(mut guard) = res_result.write() {
-                            *guard = final_result;
+                        if let Err(e) = run() {
+                            e.show_error_dialog_and_reset(sender.clone(), is_executing_clone.clone());
                         }
-                        if let Ok(mut guard) = is_executing_clone.write() {
-                            *guard = false;
-                        }
-                        ctx_clone.request_repaint();
                     });
                 }
 
@@ -470,9 +480,7 @@ impl Component for WorkbenchWindow {
 
                 ui.add_space(8.0);
 
-                if let Ok(guard) = self.resp_data.read() {
-                    state.workbench_state.result_data = guard.clone();
-                }
+                state.workbench_state.result_data = resp_data.clone();
 
                 let available_height = ui.available_height();
                 let results_height = if !state.workbench_state.command_history.is_empty() {
@@ -507,11 +515,6 @@ impl Component for WorkbenchWindow {
                             });
                         }
 
-                        let result_text = self
-                            .resp_result
-                            .read()
-                            .map_or(String::new(), |guard| guard.clone());
-
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             if ui
                                 .add_enabled(
@@ -526,11 +529,6 @@ impl Component for WorkbenchWindow {
                     });
 
                     ui.add_space(6.0);
-
-                    self.result_display = self
-                        .resp_result
-                        .read()
-                        .map_or(String::new(), |guard| guard.clone());
 
                     egui::Frame::new()
                         .fill(ui.visuals().extreme_bg_color)

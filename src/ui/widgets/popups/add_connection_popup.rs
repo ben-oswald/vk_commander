@@ -223,6 +223,7 @@ impl AddConnectionPopup {
                 Arc::new(connection_string),
                 sender.clone(),
                 i18n.clone(),
+                true,
             ) {
                 Ok(vc) => {
                     let mut connected = connected.write();
