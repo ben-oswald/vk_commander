@@ -21,6 +21,13 @@ pub struct AddConnectionPopup {
     password: String,
     database_index: String,
     show_password: (bool, bool),
+    use_ssh: bool,
+    ssh_host: String,
+    ssh_port: String,
+    ssh_user: String,
+    ssh_password: String,
+    ssh_key: String,
+    show_ssh_password: (bool, bool),
     connection_string_focus: bool,
     connected: Arc<RwLock<bool>>,
 }
@@ -36,6 +43,13 @@ impl Default for AddConnectionPopup {
             password: "".to_string(),
             database_index: "".to_string(),
             show_password: (false, true),
+            use_ssh: false,
+            ssh_host: "".to_string(),
+            ssh_port: "22".to_string(),
+            ssh_user: "".to_string(),
+            ssh_password: "".to_string(),
+            ssh_key: "".to_string(),
+            show_ssh_password: (false, true),
             connection_string_focus: false,
             connected: Default::default(),
         }
@@ -160,6 +174,61 @@ impl PopupUi for AddConnectionPopup {
             );
         });
         ui.separator();
+        ui.checkbox(&mut self.use_ssh, i18n.get(LangKey::UseSsh));
+        if self.use_ssh {
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ui.label(i18n.get(LangKey::SshHost));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.ssh_host)
+                            .desired_width(ui.available_width() * 0.7)
+                            .hint_text("127.0.0.1"),
+                    );
+                });
+                ui.vertical(|ui| {
+                    ui.label(i18n.get(LangKey::SshPort));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.ssh_port)
+                            .desired_width(ui.available_width())
+                            .hint_text("22"),
+                    );
+                })
+            });
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ui.label(i18n.get(LangKey::SshUser));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.ssh_user)
+                            .desired_width(ui.available_width() * 0.5)
+                            .hint_text("root"),
+                    );
+                });
+                ui.vertical(|ui| {
+                    ui.label(i18n.get(LangKey::SshPassword));
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut self.ssh_password)
+                                .password(true)
+                                .desired_width(ui.available_width())
+                                .hint_text("Pa$$w0rd"),
+                        )
+                        .has_focus()
+                    {
+                        self.handle_show_ssh_password();
+                    }
+                    ui.checkbox(&mut self.show_ssh_password.0, i18n.get(LangKey::ShowPassword));
+                });
+            });
+            ui.vertical(|ui| {
+                ui.label(i18n.get(LangKey::SshKeyPath));
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.ssh_key)
+                        .desired_width(ui.available_width())
+                        .hint_text("/home/user/.ssh/id_rsa"),
+                );
+            });
+        }
+        ui.separator();
         egui::Sides::new().show(
             ui,
             |ui| {
@@ -269,6 +338,16 @@ impl AddConnectionPopup {
                     .map(|dbi| dbi.to_string())
                     .unwrap_or_default(),
                 show_password: (false, false),
+                use_ssh: valkey_url.ssh_host().is_some(),
+                ssh_host: valkey_url.ssh_host().unwrap_or("").to_string(),
+                ssh_port: valkey_url
+                    .ssh_port()
+                    .map(|p| p.to_string())
+                    .unwrap_or("22".to_string()),
+                ssh_user: valkey_url.ssh_user().unwrap_or("").to_string(),
+                ssh_password: valkey_url.ssh_password().unwrap_or("").to_string(),
+                ssh_key: valkey_url.ssh_key().unwrap_or("").to_string(),
+                show_ssh_password: (false, false),
                 connection_string_focus: false,
                 connected: Default::default(),
             }
@@ -283,6 +362,13 @@ impl AddConnectionPopup {
                 password: "".to_string(),
                 database_index: "".to_string(),
                 show_password: (false, false),
+                use_ssh: false,
+                ssh_host: "".to_string(),
+                ssh_port: "22".to_string(),
+                ssh_user: "".to_string(),
+                ssh_password: "".to_string(),
+                ssh_key: "".to_string(),
+                show_ssh_password: (false, false),
                 connection_string_focus: false,
                 connected: Default::default(),
             }
@@ -303,11 +389,14 @@ impl AddConnectionPopup {
     }
 
     fn get_url_with_cleartext_pw(&self) -> Result<String, Box<Error>> {
-        let valkey_url_builder = ValkeyUrlBuilder::from(self.connection_string.clone());
-        Ok(valkey_url_builder
-            .password(self.password.clone())
-            .build()?
-            .connection_string())
+        let mut valkey_url_builder = ValkeyUrlBuilder::from(self.connection_string.clone())
+            .password(self.password.clone());
+
+        if self.use_ssh {
+            valkey_url_builder = valkey_url_builder.ssh_password(self.ssh_password.clone());
+        }
+
+        Ok(valkey_url_builder.build()?.connection_string())
     }
 
     fn parse_valkey_url(&mut self) {
@@ -331,6 +420,27 @@ impl AddConnectionPopup {
             if !self.database_index.is_empty() {
                 valkey_url = valkey_url.db(self.database_index.parse().unwrap_or(0))
             }
+            if self.use_ssh {
+                if !self.ssh_host.is_empty() {
+                    valkey_url = valkey_url.ssh_host(self.ssh_host.clone());
+                }
+                if !self.ssh_port.is_empty() {
+                    valkey_url = valkey_url.ssh_port(self.ssh_port.parse().unwrap_or(22));
+                }
+                if !self.ssh_user.is_empty() {
+                    valkey_url = valkey_url.ssh_user(self.ssh_user.clone());
+                }
+                if !self.ssh_password.is_empty() {
+                    if self.show_ssh_password.0 || self.show_ssh_password.1 {
+                        valkey_url = valkey_url.ssh_password(self.ssh_password.clone());
+                    } else {
+                        valkey_url = valkey_url.ssh_password("*".repeat(self.ssh_password.len()));
+                    }
+                }
+                if !self.ssh_key.is_empty() {
+                    valkey_url = valkey_url.ssh_key(self.ssh_key.clone());
+                }
+            }
             match valkey_url.build() {
                 Ok(valkey_url) => {
                     self.connection_string = valkey_url.connection_string();
@@ -349,7 +459,18 @@ impl AddConnectionPopup {
             self.database_index = match valkey_url.db() {
                 Some(db_idx) => db_idx.to_string(),
                 None => "".to_string(),
+            };
+            self.use_ssh = valkey_url.ssh_host().is_some();
+            self.ssh_host = valkey_url.ssh_host().unwrap_or("").to_string();
+            self.ssh_port = valkey_url
+                .ssh_port()
+                .map(|p| p.to_string())
+                .unwrap_or("22".to_string());
+            self.ssh_user = valkey_url.ssh_user().unwrap_or("").to_string();
+            if self.show_ssh_password.0 || self.show_ssh_password.1 {
+                self.ssh_password = valkey_url.ssh_password().unwrap_or("").to_string();
             }
+            self.ssh_key = valkey_url.ssh_key().unwrap_or("").to_string();
         }
     }
 
@@ -358,6 +479,14 @@ impl AddConnectionPopup {
             self.show_password.1 = false;
         } else if self.show_password.0 && !self.show_password.1 {
             self.show_password.1 = true;
+        }
+    }
+
+    fn handle_show_ssh_password(&mut self) {
+        if !self.show_ssh_password.0 && self.show_ssh_password.1 {
+            self.show_ssh_password.1 = false;
+        } else if self.show_ssh_password.0 && !self.show_ssh_password.1 {
+            self.show_ssh_password.1 = true;
         }
     }
 }

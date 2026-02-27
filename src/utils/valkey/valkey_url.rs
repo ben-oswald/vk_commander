@@ -10,6 +10,11 @@ pub struct ValkeyUrl {
     db: Option<u32>,
     connection_type: Option<String>,
     last_connection: Option<String>,
+    ssh_host: Option<String>,
+    ssh_port: Option<u16>,
+    ssh_user: Option<String>,
+    ssh_password: Option<String>,
+    ssh_key: Option<String>,
 }
 
 impl Default for ValkeyUrl {
@@ -23,6 +28,11 @@ impl Default for ValkeyUrl {
             db: None,
             connection_type: None,
             last_connection: None,
+            ssh_host: None,
+            ssh_port: None,
+            ssh_user: None,
+            ssh_password: None,
+            ssh_key: None,
         }
     }
 }
@@ -76,6 +86,23 @@ impl ValkeyUrl {
             result.push('/');
             result.push_str(&db.to_string());
         }
+
+        if let Some(ref ssh_host) = self.ssh_host {
+            result.push_str(&format!("|ssh_host:{}", ssh_host));
+        }
+        if let Some(ssh_port) = self.ssh_port {
+            result.push_str(&format!("|ssh_port:{}", ssh_port));
+        }
+        if let Some(ref ssh_user) = self.ssh_user {
+            result.push_str(&format!("|ssh_user:{}", ssh_user));
+        }
+        if let Some(ref ssh_password) = self.ssh_password {
+            result.push_str(&format!("|ssh_pass:{}", ssh_password));
+        }
+        if let Some(ref ssh_key) = self.ssh_key {
+            result.push_str(&format!("|ssh_key:{}", ssh_key));
+        }
+
         result
     }
 
@@ -108,6 +135,26 @@ impl ValkeyUrl {
         self.last_connection.as_deref()
     }
 
+    pub fn ssh_host(&self) -> Option<&str> {
+        self.ssh_host.as_deref()
+    }
+
+    pub fn ssh_port(&self) -> Option<u16> {
+        self.ssh_port
+    }
+
+    pub fn ssh_user(&self) -> Option<&str> {
+        self.ssh_user.as_deref()
+    }
+
+    pub fn ssh_password(&self) -> Option<&str> {
+        self.ssh_password.as_deref()
+    }
+
+    pub fn ssh_key(&self) -> Option<&str> {
+        self.ssh_key.as_deref()
+    }
+
     pub fn address(&self) -> String {
         format!("{}:{}", self.host, self.port)
     }
@@ -115,6 +162,12 @@ impl ValkeyUrl {
     pub fn parse_valkey_url(connection_name: Option<&str>, url: &str) -> Result<ValkeyUrl, Error> {
         let mut connection_type = None;
         let mut last_connection = None;
+        let mut ssh_host = None;
+        let mut ssh_port = None;
+        let mut ssh_user = None;
+        let mut ssh_password = None;
+        let mut ssh_key = None;
+
         let url_to_parse = if let Some(pipe_idx) = url.find('|') {
             let metadata_part = &url[pipe_idx + 1..];
             for metadata in metadata_part.split('|') {
@@ -123,6 +176,11 @@ impl ValkeyUrl {
                     let value = &metadata[colon_idx + 1..];
                     match key {
                         "type" => connection_type = Some(value.to_string()),
+                        "ssh_host" => ssh_host = Some(value.to_string()),
+                        "ssh_port" => ssh_port = value.parse::<u16>().ok(),
+                        "ssh_user" => ssh_user = Some(value.to_string()),
+                        "ssh_pass" => ssh_password = Some(value.to_string()),
+                        "ssh_key" => ssh_key = Some(value.to_string()),
                         "last" => {
                             if let Ok(timestamp) = value.parse::<u64>() {
                                 let secs_per_day = 86400;
@@ -248,6 +306,11 @@ impl ValkeyUrl {
             db,
             connection_type,
             last_connection,
+            ssh_host,
+            ssh_port,
+            ssh_user,
+            ssh_password,
+            ssh_key,
         })
     }
 }
@@ -261,6 +324,11 @@ pub struct ValkeyUrlBuilder {
     db: Option<u32>,
     connection_type: Option<String>,
     last_connection: Option<String>,
+    ssh_host: Option<String>,
+    ssh_port: Option<u16>,
+    ssh_user: Option<String>,
+    ssh_password: Option<String>,
+    ssh_key: Option<String>,
 }
 
 impl Default for ValkeyUrlBuilder {
@@ -281,6 +349,11 @@ impl From<String> for ValkeyUrlBuilder {
                 db: valkey_url.db,
                 connection_type: valkey_url.connection_type,
                 last_connection: valkey_url.last_connection,
+                ssh_host: valkey_url.ssh_host,
+                ssh_port: valkey_url.ssh_port,
+                ssh_user: valkey_url.ssh_user,
+                ssh_password: valkey_url.ssh_password,
+                ssh_key: valkey_url.ssh_key,
             }
         } else {
             Self::new()
@@ -299,6 +372,11 @@ impl ValkeyUrlBuilder {
             db: None,
             connection_type: None,
             last_connection: None,
+            ssh_host: None,
+            ssh_port: None,
+            ssh_user: None,
+            ssh_password: None,
+            ssh_key: None,
         }
     }
 
@@ -342,6 +420,31 @@ impl ValkeyUrlBuilder {
         self
     }
 
+    pub fn ssh_host(mut self, ssh_host: impl Into<String>) -> Self {
+        self.ssh_host = Some(ssh_host.into());
+        self
+    }
+
+    pub fn ssh_port(mut self, ssh_port: u16) -> Self {
+        self.ssh_port = Some(ssh_port);
+        self
+    }
+
+    pub fn ssh_user(mut self, ssh_user: impl Into<String>) -> Self {
+        self.ssh_user = Some(ssh_user.into());
+        self
+    }
+
+    pub fn ssh_password(mut self, ssh_password: impl Into<String>) -> Self {
+        self.ssh_password = Some(ssh_password.into());
+        self
+    }
+
+    pub fn ssh_key(mut self, ssh_key: impl Into<String>) -> Self {
+        self.ssh_key = Some(ssh_key.into());
+        self
+    }
+
     pub fn build(self) -> Result<ValkeyUrl, Error> {
         let host = self.host.ok_or("Invalid hostname")?;
         let port = self.port.unwrap_or(6379);
@@ -354,6 +457,11 @@ impl ValkeyUrlBuilder {
             db: self.db,
             connection_type: self.connection_type,
             last_connection: self.last_connection,
+            ssh_host: self.ssh_host,
+            ssh_port: self.ssh_port,
+            ssh_user: self.ssh_user,
+            ssh_password: self.ssh_password,
+            ssh_key: self.ssh_key,
         })
     }
 }

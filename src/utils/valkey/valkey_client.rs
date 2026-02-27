@@ -4,7 +4,8 @@ use crate::state::{Event, Info};
 use crate::state::{MainWindow, Message};
 use crate::utils::ValkeyUrl;
 use crate::utils::valkey::{Len, ToResp, ToVec, ValkeyValue, find_crlf};
-use egui::mutex::RwLock;
+use egui::mutex::Mutex;
+use ssh2::Session;
 use std::io;
 use std::io::ErrorKind;
 use std::io::{Read, Write};
@@ -20,10 +21,44 @@ const PARTIALLY_SUPPORTED_SERVERS: [&str; 1] = ["redis"];
 const SUPPORTED_PROTOCOLS: [&str; 1] = ["RESP3"];
 
 pub struct ValkeyClient {
-    stream: RwLock<TcpStream>,
+    stream: Mutex<ValkeyStream>,
     alias: Arc<Option<String>>,
     url: Arc<String>,
     server_type: Arc<String>,
+}
+
+enum ValkeyStream {
+    Tcp(TcpStream),
+    Ssh {
+        channel: ssh2::Channel,
+        _session: Session,
+        _tcp: TcpStream,
+    },
+}
+
+impl Read for ValkeyStream {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self {
+            ValkeyStream::Tcp(s) => s.read(buf),
+            ValkeyStream::Ssh { channel, .. } => channel.read(buf),
+        }
+    }
+}
+
+impl Write for ValkeyStream {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self {
+            ValkeyStream::Tcp(s) => s.write(buf),
+            ValkeyStream::Ssh { channel, .. } => channel.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self {
+            ValkeyStream::Tcp(s) => s.flush(),
+            ValkeyStream::Ssh { channel, .. } => channel.flush(),
+        }
+    }
 }
 
 impl AsRef<str> for ValkeyClient {
@@ -48,16 +83,66 @@ impl ValkeyClient {
 
         let valkey_url = ValkeyUrl::parse_valkey_url(None, &url.clone())?;
 
-        let addr = valkey_url.address();
-        let socket_addr: SocketAddr = addr
-            .to_socket_addrs()?
-            .next()
-            .ok_or(i18n.get(LangKey::NoValidAddress))?;
+        let mut stream = if let Some(ssh_host) = valkey_url.ssh_host() {
+            let ssh_port = valkey_url.ssh_port().unwrap_or(22);
+            let ssh_addr = format!("{}:{}", ssh_host, ssh_port);
+            let socket_addr: SocketAddr = ssh_addr
+                .to_socket_addrs()?
+                .next()
+                .ok_or(i18n.get(LangKey::NoValidAddress))?;
 
-        let mut stream = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(5))?;
-        stream.set_read_timeout(Some(Duration::from_secs(10)))?;
-        stream.set_write_timeout(Some(Duration::from_secs(10)))?;
-        stream.set_nodelay(true)?;
+            let tcp = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(5))?;
+            tcp.set_read_timeout(Some(Duration::from_secs(10)))?;
+            tcp.set_write_timeout(Some(Duration::from_secs(10)))?;
+
+            let mut sess = Session::new()
+                .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+            sess.set_tcp_stream(tcp.try_clone()?);
+            sess.handshake()
+                .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+
+            let user = valkey_url.ssh_user().unwrap_or("root");
+
+            if let Some(key_path) = valkey_url.ssh_key() {
+                if !key_path.is_empty() {
+                    sess.userauth_pubkey_file(
+                        user,
+                        None,
+                        std::path::Path::new(key_path),
+                        valkey_url.ssh_password(),
+                    )
+                    .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+                } else if let Some(password) = valkey_url.ssh_password() {
+                    sess.userauth_password(user, password)
+                        .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+                }
+            } else if let Some(password) = valkey_url.ssh_password() {
+                sess.userauth_password(user, password)
+                    .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+            }
+
+            let channel = sess
+                .channel_direct_tcpip(valkey_url.host(), valkey_url.port(), None)
+                .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+
+            ValkeyStream::Ssh {
+                channel,
+                _session: sess,
+                _tcp: tcp,
+            }
+        } else {
+            let addr = valkey_url.address();
+            let socket_addr: SocketAddr = addr
+                .to_socket_addrs()?
+                .next()
+                .ok_or(i18n.get(LangKey::NoValidAddress))?;
+
+            let stream = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(5))?;
+            stream.set_read_timeout(Some(Duration::from_secs(10)))?;
+            stream.set_write_timeout(Some(Duration::from_secs(10)))?;
+            stream.set_nodelay(true)?;
+            ValkeyStream::Tcp(stream)
+        };
 
         if valkey_url.password().is_some() || valkey_url.username().is_some() {
             let user = valkey_url.username().unwrap_or("");
@@ -214,7 +299,7 @@ impl ValkeyClient {
 
         Ok(Self {
             alias,
-            stream: RwLock::new(stream),
+            stream: Mutex::new(stream),
             url,
             server_type: Arc::from(server_type_str),
         })
@@ -222,7 +307,7 @@ impl ValkeyClient {
 
     pub fn set(&self, key: &str, value: &str, ttl: Option<usize>) -> Result<String, Error> {
         let value = ValkeyValue::BulkString(value.as_bytes().to_vec());
-        let mut stream = self.stream.write();
+        let mut stream = self.stream.lock();
 
         let command = if let Some(expire) = ttl {
             format!(
@@ -249,7 +334,7 @@ impl ValkeyClient {
     }
 
     pub fn get(&self, key: &str) -> Result<String, Error> {
-        let mut stream = self.stream.write();
+        let mut stream = self.stream.lock();
         let command = format!("*2\r\n$3\r\nGET\r\n${}\r\n{}\r\n", key.len(), key);
 
         let response = Self::read_stream(&mut stream, &command, None)?;
@@ -295,7 +380,7 @@ impl ValkeyClient {
     }
 
     fn exec_raw(&self, command: &str) -> Result<String, Error> {
-        let mut stream = self.stream.write();
+        let mut stream = self.stream.lock();
         let res = Self::read_stream(&mut stream, command, None)?;
         Ok(res)
     }
@@ -305,7 +390,7 @@ impl ValkeyClient {
         command: &str,
         expected_count: usize,
     ) -> Result<String, Error> {
-        let mut stream = self.stream.write();
+        let mut stream = self.stream.lock();
         let res = Self::read_stream(&mut stream, command, Some(expected_count))?;
         Ok(res)
     }
@@ -337,7 +422,7 @@ impl ValkeyClient {
     }
 
     fn read_stream(
-        stream: &mut TcpStream,
+        stream: &mut ValkeyStream,
         command: &str,
         expected_count: Option<usize>,
     ) -> Result<String, Error> {

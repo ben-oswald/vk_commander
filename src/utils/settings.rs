@@ -30,6 +30,11 @@ struct Server {
     database_index: Option<usize>,
     connection_type: Option<String>,
     last_connection: Option<String>,
+    ssh_host: Option<String>,
+    ssh_port: Option<u16>,
+    ssh_user: Option<String>,
+    ssh_password: Option<String>,
+    ssh_key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -221,6 +226,21 @@ impl AppSettings {
             if let Some(db) = s.database_index {
                 builder = builder.db(db as u32);
             }
+            if let Some(ssh_h) = s.ssh_host {
+                builder = builder.ssh_host(ssh_h);
+            }
+            if let Some(ssh_p) = s.ssh_port {
+                builder = builder.ssh_port(ssh_p);
+            }
+            if let Some(ssh_u) = s.ssh_user {
+                builder = builder.ssh_user(ssh_u);
+            }
+            if let Some(ssh_pass) = s.ssh_password {
+                builder = builder.ssh_password(ssh_pass);
+            }
+            if let Some(ssh_k) = s.ssh_key {
+                builder = builder.ssh_key(ssh_k);
+            }
             let valkey_url = builder.build()?;
             let mut conn = valkey_url.connection_string();
             if let Some(ct) = &s.connection_type {
@@ -286,6 +306,11 @@ impl AppSettings {
             database_index: parsed.db().map(|d| d as usize),
             connection_type: parsed.connection_type().map(|s| s.to_string()),
             last_connection: parsed.last_connection().map(|s| s.to_string()),
+            ssh_host: parsed.ssh_host().map(|s| s.to_string()),
+            ssh_port: parsed.ssh_port(),
+            ssh_user: parsed.ssh_user().map(|s| s.to_string()),
+            ssh_password: parsed.ssh_password().map(|s| s.to_string()),
+            ssh_key: parsed.ssh_key().map(|s| s.to_string()),
         }
     }
 
