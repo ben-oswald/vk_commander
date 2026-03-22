@@ -153,14 +153,12 @@ impl ui::Widget for Popup {
 
         if should_close {
             self.open = false;
-        } else if prev_open && !self.open {
-            if let PopupType::EditKey(edit_key) = &mut self.popup_type {
-                if edit_key.has_unsaved_changes() {
+        } else if prev_open && !self.open
+            && let PopupType::EditKey(edit_key) = &mut self.popup_type
+                && edit_key.has_unsaved_changes() {
                     self.open = true;
                     edit_key.open_unsaved_changes_dialog();
                 }
-            }
-        }
 
         Ok(())
     }

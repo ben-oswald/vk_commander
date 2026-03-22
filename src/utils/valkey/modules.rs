@@ -1,6 +1,7 @@
 use crate::errors::Error;
 use crate::utils::ValkeyClient;
 
+#[allow(dead_code)]
 pub struct ModulInfo {
     pub name: String,
     pub version: String,
@@ -8,12 +9,14 @@ pub struct ModulInfo {
     pub args: String,
 }
 
+#[allow(dead_code)]
 pub enum Module {
     Json { modul_info: ModulInfo },
     BloomFilter { modul_info: ModulInfo },
     Unknown { modul_info: ModulInfo },
 }
 
+#[allow(dead_code)]
 impl Module {
     pub fn load_modules(client: &ValkeyClient) -> Result<Vec<Self>, Error> {
         let response = client.exec("MODULE LIST")?;

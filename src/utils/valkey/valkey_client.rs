@@ -1,3 +1,8 @@
+use crate::constants::{
+    CONNECTION_TIMEOUT_SECS, MAX_WOULD_BLOCK_ERRORS, MIN_RECOMMENDED_VALKEY_VERSION,
+    MIN_VALKEY_VERSION, NETWORK_BUFFER_SIZE, PARTIALLY_SUPPORTED_SERVERS, READ_WRITE_TIMEOUT_SECS,
+    SUPPORTED_PROTOCOLS, SUPPORTED_SERVERS,
+};
 use crate::errors::Error;
 use crate::i18n::{I18N, LangKey};
 use crate::state::{Event, Info};
@@ -13,12 +18,6 @@ use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
-
-const MIN_VALKEY_VERSION: (u8, u8, u8) = (5, 0, 0);
-const MIN_RECOMMENDED_VALKEY_VERSION: (u8, u8, u8) = (8, 0, 0);
-const SUPPORTED_SERVERS: [&str; 1] = ["valkey"];
-const PARTIALLY_SUPPORTED_SERVERS: [&str; 1] = ["redis"];
-const SUPPORTED_PROTOCOLS: [&str; 1] = ["RESP3"];
 
 pub struct ValkeyClient {
     stream: Mutex<ValkeyStream>,
@@ -91,15 +90,15 @@ impl ValkeyClient {
                 .next()
                 .ok_or(i18n.get(LangKey::NoValidAddress))?;
 
-            let tcp = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(5))?;
-            tcp.set_read_timeout(Some(Duration::from_secs(10)))?;
-            tcp.set_write_timeout(Some(Duration::from_secs(10)))?;
+            let tcp = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(CONNECTION_TIMEOUT_SECS))?;
+            tcp.set_read_timeout(Some(Duration::from_secs(READ_WRITE_TIMEOUT_SECS)))?;
+            tcp.set_write_timeout(Some(Duration::from_secs(READ_WRITE_TIMEOUT_SECS)))?;
 
             let mut sess = Session::new()
-                .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+                .map_err(|e| Error::from(io::Error::other(e)))?;
             sess.set_tcp_stream(tcp.try_clone()?);
             sess.handshake()
-                .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+                .map_err(|e| Error::from(io::Error::other(e)))?;
 
             let user = valkey_url.ssh_user().unwrap_or("root");
 
@@ -111,19 +110,19 @@ impl ValkeyClient {
                         std::path::Path::new(key_path),
                         valkey_url.ssh_password(),
                     )
-                    .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+                    .map_err(|e| Error::from(io::Error::other(e)))?;
                 } else if let Some(password) = valkey_url.ssh_password() {
                     sess.userauth_password(user, password)
-                        .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+                        .map_err(|e| Error::from(io::Error::other(e)))?;
                 }
             } else if let Some(password) = valkey_url.ssh_password() {
                 sess.userauth_password(user, password)
-                    .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+                    .map_err(|e| Error::from(io::Error::other(e)))?;
             }
 
             let channel = sess
                 .channel_direct_tcpip(valkey_url.host(), valkey_url.port(), None)
-                .map_err(|e| Error::from(io::Error::new(io::ErrorKind::Other, e)))?;
+                .map_err(|e| Error::from(io::Error::other(e)))?;
 
             ValkeyStream::Ssh {
                 channel,
@@ -137,9 +136,9 @@ impl ValkeyClient {
                 .next()
                 .ok_or(i18n.get(LangKey::NoValidAddress))?;
 
-            let stream = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(5))?;
-            stream.set_read_timeout(Some(Duration::from_secs(10)))?;
-            stream.set_write_timeout(Some(Duration::from_secs(10)))?;
+            let stream = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(CONNECTION_TIMEOUT_SECS))?;
+            stream.set_read_timeout(Some(Duration::from_secs(READ_WRITE_TIMEOUT_SECS)))?;
+            stream.set_write_timeout(Some(Duration::from_secs(READ_WRITE_TIMEOUT_SECS)))?;
             stream.set_nodelay(true)?;
             ValkeyStream::Tcp(stream)
         };
@@ -430,9 +429,8 @@ impl ValkeyClient {
         stream.flush()?;
 
         let mut response = Vec::new();
-        let mut buffer = [0; 8192];
+        let mut buffer = [0; NETWORK_BUFFER_SIZE];
         let mut consecutive_would_block = 0;
-        const MAX_WOULD_BLOCK: usize = 3;
 
         loop {
             match stream.read(&mut buffer) {
@@ -465,7 +463,7 @@ impl ValkeyClient {
                 Err(e) => match e.kind() {
                     ErrorKind::WouldBlock | ErrorKind::TimedOut => {
                         consecutive_would_block += 1;
-                        if consecutive_would_block >= MAX_WOULD_BLOCK {
+                        if consecutive_would_block >= MAX_WOULD_BLOCK_ERRORS {
                             if response.is_empty() {
                                 return Err(Error::from(io::Error::new(
                                     ErrorKind::TimedOut,

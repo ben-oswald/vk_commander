@@ -77,6 +77,7 @@ pub struct InsightsWindow {
 
     sort_mode: SortMode,
     sender: Arc<Sender<Message>>,
+    #[allow(dead_code)]
     i18n: Arc<I18N>,
 }
 

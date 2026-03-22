@@ -1,16 +1,16 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use crate::egui::ViewportBuilder;
-use crate::egui::vec2;
 use eframe::egui;
-use vk_commander::state::{AppState, Info};
-
 use eframe::HardwareAcceleration;
-use egui::IconData;
+use egui::{IconData, ViewportBuilder, vec2};
 use std::sync::Arc;
+use vk_commander::constants::{
+    BANNER_FADEOUT_MS, BANNER_MARGIN, BANNER_WIDTH, DEFAULT_WINDOW_SIZE, MIN_WINDOW_SIZE,
+    SETTINGS_RELOAD_INTERVAL_FRAMES,
+};
 use vk_commander::errors::Error;
-use vk_commander::state::{Event, Message};
+use vk_commander::state::{AppState, Event, Info, Message};
 use vk_commander::ui::components::UIComponents;
 use vk_commander::ui::widgets::ErrorModal;
 use vk_commander::ui::{Component, Widget};
@@ -29,23 +29,18 @@ impl App {
             frame_count: 0,
         }
     }
-}
 
-impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if self.frame_count == 0 {
-            let settings = self.state.get_settings();
-            let theme = settings.get_theme();
-            match theme.as_str() {
-                "light" => ctx.set_theme(egui::Theme::Light),
-                "dark" => ctx.set_theme(egui::Theme::Dark),
-                _ => { /* No theme selected (System)*/ }
-            }
+    fn apply_theme(&self, ctx: &egui::Context) {
+        let settings = self.state.get_settings();
+        let theme = settings.get_theme();
+        match theme.as_str() {
+            "light" => ctx.set_theme(egui::Theme::Light),
+            "dark" => ctx.set_theme(egui::Theme::Dark),
+            _ => { /* No theme selected (System) */ }
         }
+    }
 
-        let sender = self.state.get_sender();
-        self.state.get_state(&mut self.ui_components);
-
+    fn render_main_ui(&mut self, ctx: &egui::Context) {
         if let Err(e) = self.ui_components.menu_bar.show(ctx, &mut self.state) {
             self.state.error = ErrorModal::from(e);
         };
@@ -59,50 +54,62 @@ impl eframe::App for App {
         if let Err(e) = self.ui_components.current_window.show(ctx, &mut self.state) {
             self.state.error = ErrorModal::from(e);
         }
+    }
 
-        if self.state.error.open {
-            egui::Modal::new(egui::Id::new("critical_error")).show(ctx, |ui| {
-                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    ui.label(&self.state.error.title);
+    fn render_error_modal(&mut self, ctx: &egui::Context) {
+        if !self.state.error.open {
+            return;
+        }
+
+        egui::Modal::new(egui::Id::new("critical_error")).show(ctx, |ui| {
+            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                ui.label(&self.state.error.title);
+            });
+            ui.separator();
+            ui.add_space(8.0);
+            ui.label(&self.state.error.error_message);
+            ui.add_space(8.0);
+            ui.separator();
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                if ui.button("Ok").clicked() {
+                    self.state.error.open = false;
+                }
+            });
+        });
+    }
+
+    fn render_info_modal(&mut self, ctx: &egui::Context) {
+        if !self.state.info.open {
+            return;
+        }
+
+        egui::Modal::new(egui::Id::new("info")).show(ctx, |ui| {
+            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                ui.label(&self.state.info.title);
+            });
+            ui.separator();
+            ui.add_space(8.0);
+            egui::ScrollArea::vertical()
+                .max_height(300.0)
+                .show(ui, |ui| {
+                    ui.label(&self.state.info.message);
                 });
-                ui.separator();
-                ui.add_space(8.0);
-                ui.label(&self.state.error.error_message);
-                ui.add_space(8.0);
+            ui.add_space(8.0);
+            if self.state.info.on_close.is_some() {
                 ui.separator();
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
                     if ui.button("Ok").clicked() {
-                        self.state.error.open = false;
+                        self.state.info.open = false;
                     }
                 });
-            });
-        }
+            }
+        });
+    }
 
-        if self.state.info.open {
-            egui::Modal::new(egui::Id::new("info")).show(ctx, |ui| {
-                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    ui.label(&self.state.info.title);
-                });
-                ui.separator();
-                ui.add_space(8.0);
-                egui::ScrollArea::vertical()
-                    .max_height(300.0)
-                    .show(ui, |ui| {
-                        ui.label(&self.state.info.message);
-                    });
-                ui.add_space(8.0);
-                if self.state.info.on_close.is_some() {
-                    ui.separator();
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                        if ui.button("Ok").clicked() {
-                            self.state.info.open = false;
-                        }
-                    });
-                }
-            });
-        }
-
+    fn render_popups(&mut self, ctx: &egui::Context) {
+        let sender = self.state.get_sender();
         let i18n = self.state.i18n();
+
         self.state.popups.retain_mut(|popup| {
             if popup.open {
                 popup
@@ -128,22 +135,24 @@ impl eframe::App for App {
                     self.state.error = ErrorModal::from(e);
                 });
         }
+    }
 
+    fn render_banners(&mut self, ctx: &egui::Context) {
         let now = std::time::Instant::now();
-        self.state.banners.retain(|b| b.still_visible(now, 300));
+        self.state
+            .banners
+            .retain(|b| b.still_visible(now, BANNER_FADEOUT_MS));
 
         let mut y_offset = 0.0_f32;
-        let margin = 12.0_f32;
-        let banner_width = 360.0_f32;
 
         for i in 0..self.state.banners.len() {
-            let idx = self.state.banners.len() - 1 - i; // draw the newest on bottom
+            let idx = self.state.banners.len() - 1 - i;
             let banner_id = self.state.banners[idx].id().to_string();
             let (used_height, dismiss) = {
                 let b = &mut self.state.banners[idx];
-                b.show(ctx, now, y_offset, margin, banner_width)
+                b.show(ctx, now, y_offset, BANNER_MARGIN, BANNER_WIDTH)
             };
-            y_offset += used_height + margin;
+            y_offset += used_height + BANNER_MARGIN;
             if dismiss {
                 let _ = self
                     .state
@@ -151,94 +160,121 @@ impl eframe::App for App {
                     .send(Message::Event(Arc::new(Event::DismissBanner(banner_id))));
             }
         }
+    }
 
-        if self.state.show_about {
-            let response = egui::Window::new("About vkCommander")
-                .open(&mut self.state.show_about)
-                .collapsible(false)
-                .resizable(false)
-                .show(ctx, |ui| {
-                    ui.heading("vkCommander");
-                    ui.add_space(10.0);
-
-                    ui.label("A GUI tool for Valkey management");
-                    ui.add_space(10.0);
-
-                    ui.horizontal(|ui| {
-                        ui.label("Version:");
-                        ui.label(env!("CARGO_PKG_VERSION"));
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("License:");
-                        ui.hyperlink_to("AGPL-3.0", "https://www.gnu.org/licenses/agpl-3.0.html");
-                    });
-
-                    ui.horizontal(|ui| {
-                        ui.label("Contact:");
-                        ui.hyperlink_to(
-                            "info@oswald.dev",
-                            "mailto:info@oswald.dev?subject=vkCommander%20Feedback",
-                        );
-                    });
-
-                    ui.horizontal(|ui| {
-                        ui.label("Website:");
-                        ui.hyperlink_to("oswald.dev", "https://oswald.dev");
-                    });
-
-                    ui.horizontal(|ui| {
-                        ui.label("Source Code:");
-                        ui.hyperlink_to(
-                            "github.com/ben-oswald/vk_commander",
-                            "https://github.com/ben-oswald/vk_commander",
-                        );
-                    });
-
-                    ui.separator();
-
-                    ui.horizontal(|ui| {
-                        ui.label("This software uses parts of Valkey, licenses under");
-
-                        if ui
-                            .add(egui::Button::new("BSD 3-Clause").frame(false))
-                            .clicked()
-                        {
-                            sender
-                                .send(Message::Event(Arc::from(Event::ShowInfo(Info {
-                                    title: "BSD 3-Clause License".into(),
-                                    message: include_str!("../valkey_license.txt").into(),
-                                    callback: Some(|| {}),
-                                }))))
-                                .unwrap_or_else(|e| {
-                                    Error::from(e).show_error_dialog(sender.clone())
-                                });
-                        };
-                    });
-
-                    ui.separator();
-                    ui.add_space(10.0);
-
-                    ui.button("Close").clicked()
-                });
-
-            if let Some(inner_response) = response
-                && inner_response.inner == Some(true)
-            {
-                self.state.show_about = false;
-            }
+    fn render_about_dialog(&mut self, ctx: &egui::Context) {
+        if !self.state.show_about {
+            return;
         }
 
-        if self.frame_count >= 1024 {
+        let sender = self.state.get_sender();
+        let response = egui::Window::new("About vkCommander")
+            .open(&mut self.state.show_about)
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.heading("vkCommander");
+                ui.add_space(10.0);
+
+                ui.label("A GUI tool for Valkey management");
+                ui.add_space(10.0);
+
+                ui.horizontal(|ui| {
+                    ui.label("Version:");
+                    ui.label(env!("CARGO_PKG_VERSION"));
+                });
+                ui.horizontal(|ui| {
+                    ui.label("License:");
+                    ui.hyperlink_to("AGPL-3.0", "https://www.gnu.org/licenses/agpl-3.0.html");
+                });
+
+                ui.horizontal(|ui| {
+                    ui.label("Contact:");
+                    ui.hyperlink_to(
+                        "info@oswald.dev",
+                        "mailto:info@oswald.dev?subject=vkCommander%20Feedback",
+                    );
+                });
+
+                ui.horizontal(|ui| {
+                    ui.label("Website:");
+                    ui.hyperlink_to("oswald.dev", "https://oswald.dev");
+                });
+
+                ui.horizontal(|ui| {
+                    ui.label("Source Code:");
+                    ui.hyperlink_to(
+                        "github.com/ben-oswald/vk_commander",
+                        "https://github.com/ben-oswald/vk_commander",
+                    );
+                });
+
+                ui.separator();
+
+                ui.horizontal(|ui| {
+                    ui.label("This software uses parts of Valkey, licenses under");
+
+                    if ui
+                        .add(egui::Button::new("BSD 3-Clause").frame(false))
+                        .clicked()
+                    {
+                        sender
+                            .send(Message::Event(Arc::from(Event::ShowInfo(Info {
+                                title: "BSD 3-Clause License".into(),
+                                message: include_str!("../valkey_license.txt").into(),
+                                callback: Some(|| {}),
+                            }))))
+                            .unwrap_or_else(|e| {
+                                Error::from(e).show_error_dialog(sender.clone())
+                            });
+                    };
+                });
+
+                ui.separator();
+                ui.add_space(10.0);
+
+                ui.button("Close").clicked()
+            });
+
+        if let Some(inner_response) = response
+            && inner_response.inner == Some(true)
+        {
+            self.state.show_about = false;
+        }
+    }
+
+    fn reload_settings_periodically(&mut self) {
+        let sender = self.state.get_sender();
+
+        if self.frame_count >= SETTINGS_RELOAD_INTERVAL_FRAMES {
             self.state
                 .get_settings()
                 .load_from_file()
                 .unwrap_or_else(|e| {
-                    e.show_error_dialog(sender.clone());
+                    e.show_error_dialog(sender);
                 });
             self.frame_count = 0;
         } else {
             self.frame_count += 1;
         }
+    }
+}
+
+impl eframe::App for App {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if self.frame_count == 0 {
+            self.apply_theme(ctx);
+        }
+
+        self.state.get_state(&mut self.ui_components);
+
+        self.render_main_ui(ctx);
+        self.render_error_modal(ctx);
+        self.render_info_modal(ctx);
+        self.render_popups(ctx);
+        self.render_banners(ctx);
+        self.render_about_dialog(ctx);
+        self.reload_settings_periodically();
 
         ctx.request_repaint();
     }
@@ -260,8 +296,8 @@ fn load_icon() -> Option<IconData> {
 
 fn main() {
     let mut viewport = ViewportBuilder::default()
-        .with_min_inner_size(vec2(800.0, 600.0))
-        .with_inner_size(vec2(1366.0, 768.0));
+        .with_min_inner_size(vec2(MIN_WINDOW_SIZE.0, MIN_WINDOW_SIZE.1))
+        .with_inner_size(vec2(DEFAULT_WINDOW_SIZE.0, DEFAULT_WINDOW_SIZE.1));
 
     if let Some(icon) = load_icon() {
         viewport = viewport.with_icon(icon);
@@ -289,7 +325,6 @@ fn main() {
         persist_window: false,
         persistence_path: None,
         dithering: false,
-        ..Default::default()
     };
 
     eframe::run_native(

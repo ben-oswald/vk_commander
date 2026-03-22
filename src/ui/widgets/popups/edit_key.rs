@@ -113,17 +113,13 @@ impl EditKey {
     }
 
     fn delete_button(ui: &mut Ui) -> bool {
-        if ui.small_button("🗑").clicked() {
-            true
-        } else {
-            false
-        }
+        ui.small_button("🗑").clicked()
     }
 
     fn highlighted_column(
-        (key, key_type): (&str, &KeyType),
+        (_key, key_type): (&str, &KeyType),
         ui: &mut Ui,
-        (row, index): ((&String, &mut String), usize),
+        (row, _index): ((&String, &mut String), usize),
         (read_only, is_focused): (bool, bool),
         cell_id: (usize, usize),
         original_values: &mut HashMap<(usize, usize), String>,
@@ -254,7 +250,7 @@ impl EditKey {
         }
     }
 
-    fn add_new_field_form(&mut self, ui: &mut Ui, sender: &Arc<Sender<Message>>) {
+    fn add_new_field_form(&mut self, ui: &mut Ui, _sender: &Arc<Sender<Message>>) {
         ui.horizontal(|ui| {
             ui.label(self.i18n.get(LangKey::AddNew));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -694,7 +690,7 @@ impl EditKey {
         self.original_values.clear();
     }
 
-    fn bloom_filter(&self, ui: &mut Ui, sender: &Arc<Sender<Message>>) {
+    fn bloom_filter(&self, ui: &mut Ui, _sender: &Arc<Sender<Message>>) {
         let bf_info: HashMap<String, String> = self.data.clone().into_iter().collect();
 
         ui.vertical(|ui| {

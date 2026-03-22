@@ -1,4 +1,5 @@
 mod app_state;
+mod handlers;
 mod message;
 mod workbench_state;
 

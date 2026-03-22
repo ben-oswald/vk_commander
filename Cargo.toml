@@ -10,7 +10,7 @@ homepage = "https://oswald.dev"
 build = "build.rs"
 
 [dependencies]
-ssh2 = "0.9"
+ssh2 = "0.9.5"
 egui = "0.33.3"
 egui_code_editor = { version = "0.2.20", features = ["serde"] }
 egui_extras = "0.33.3"
@@ -27,7 +27,7 @@ eframe = { version = "0.33.3", features = ["default_fonts", "glow", "wayland"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 eframe = { version = "0.33", features = ["default_fonts", "wgpu"] }
-wgpu = { version = "27.0.1", features = ["dx12", "vulkan", "gles"] }
+wgpu = { version = "28.0.0", features = ["dx12", "vulkan", "gles"] }
 
 [build-dependencies]
 embed-resource = "3.0.6"

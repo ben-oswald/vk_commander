@@ -300,11 +300,10 @@ impl DocumentationWindow {
             self.selected_command = Some(command_full_name.to_string());
         }
 
-        if response.double_clicked() {
-            if let Err(e) = Self::open_command_in_workbench(state, command_full_name) {
+        if response.double_clicked()
+            && let Err(e) = Self::open_command_in_workbench(state, command_full_name) {
                 e.show_error_dialog(state.get_sender());
             }
-        }
     }
 
     fn labeled_row(ui: &mut egui::Ui, title: &str, value: &str) {

@@ -178,7 +178,7 @@ impl ImportWindow {
             .first()
             .map(|s| s.to_ascii_uppercase())
             .unwrap_or_default();
-        let is_nx = tokens.iter().any(|t| t.to_ascii_uppercase() == "NX")
+        let is_nx = tokens.iter().any(|t| t.eq_ignore_ascii_case("NX"))
             || matches!(cmd_upper.as_str(), "SETNX" | "MSETNX");
 
         if is_nx && (resp.is_empty() || resp == "0") {
@@ -217,11 +217,10 @@ impl ImportWindow {
     }
 
     fn update_target_db(&mut self, servers: &[(String, String)]) {
-        if let Some(pos) = servers.iter().position(|(a, _)| a == &self.selected_alias) {
-            if let Ok(url) = ValkeyUrl::parse_valkey_url(Some(&self.selected_alias), &servers[pos].1) {
+        if let Some(pos) = servers.iter().position(|(a, _)| a == &self.selected_alias)
+            && let Ok(url) = ValkeyUrl::parse_valkey_url(Some(&self.selected_alias), &servers[pos].1) {
                 self.target_db = url.db().unwrap_or(0) as usize;
             }
-        }
     }
 
     fn ui_connection_settings(&mut self, ui: &mut egui::Ui, servers: &[(String, String)]) {
@@ -329,7 +328,7 @@ impl ImportWindow {
                 };
 
                 let chunk_size = 50;
-                let total = (cmds.len() + chunk_size - 1) / chunk_size;
+                let total = cmds.len().div_ceil(chunk_size);
                 for (i, chunk) in cmds.chunks(chunk_size).enumerate() {
                     log(format!("Importing chunk {}/{}", i + 1, total), false);
                     match client.exec_pipelined_with_status(&chunk.to_vec()) {
